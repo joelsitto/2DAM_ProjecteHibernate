@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+
+<hibernate-configuration>
+    <session-factory>
+        <!-- Connexió a la base de dades -->
+        <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/ProjecteHibernateBang</property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.connection.password">super3</property>
+
+        <!-- Altres configuracions-->
+        <property name="hibernate.hbm2ddl.auto">update</property> <!-- create: torna a crear la BBDD / update: només l'actualitza' -->
+        <property name="show_sql">true</property>
+        <property name="hibernate.current_session_context_class">org.hibernate.context.internal.ThreadLocalSessionContext</property>
+
+        <!-- IMPORTANT: AFEGIU LES CLASSES QUE FAN EL MAPATGE DE LES TAULES DE LA BBDD-->
+
+
+    </session-factory>
+</hibernate-configuration>
