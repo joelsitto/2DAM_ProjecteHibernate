@@ -17,6 +17,14 @@
         <property name="show_sql">true</property>
         <property name="hibernate.current_session_context_class">org.hibernate.context.internal.ThreadLocalSessionContext</property>
 
+
+        <mapping class="com.joelsitto.bang.model.Partida"/>
+        <mapping class="com.joelsitto.bang.model.Jugador"/>
+        <mapping class="com.joelsitto.bang.model.Rol"/>
+        <mapping class="com.joelsitto.bang.model.Carta"/>
+        <mapping class="com.joelsitto.bang.model.CartaArma"/>
+        <mapping class="com.joelsitto.bang.model.CartaEquipament"/>
+        <mapping class="com.joelsitto.bang.model.CartaUs"/>
         <!-- IMPORTANT: AFEGIU LES CLASSES QUE FAN EL MAPATGE DE LES TAULES DE LA BBDD-->
 
 
