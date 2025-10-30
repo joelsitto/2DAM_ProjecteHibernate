@@ -25,6 +25,7 @@
         <mapping class="com.joelsitto.bang.model.CartaArma"/>
         <mapping class="com.joelsitto.bang.model.CartaEquipament"/>
         <mapping class="com.joelsitto.bang.model.CartaUs"/>
+        <mapping class="com.joelsitto.bang.model.DistanciesJugadors"/>
         <!-- IMPORTANT: AFEGIU LES CLASSES QUE FAN EL MAPATGE DE LES TAULES DE LA BBDD-->
 
 

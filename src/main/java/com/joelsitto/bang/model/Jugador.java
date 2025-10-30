@@ -31,16 +31,28 @@ public class Jugador {
     @JoinColumn(name = "id_rol", nullable = false)
     private Rol rol;
 
-    @OneToOne
-    @JoinColumn(name = "id_arma")
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "id_carta_arma")
     private CartaArma armaEquipada;
 
-    @OneToMany
-    @JoinTable(name = "jugador_equipament",
-            joinColumns = @JoinColumn(name = "id_jugador"),
-            inverseJoinColumns = @JoinColumn(name = "id_equipament"))
+    @OneToMany(mappedBy = "jugadorEquipament", cascade = CascadeType.ALL)
     private List<CartaEquipament> equipaments = new ArrayList<>();
 
+    @OneToMany(mappedBy = "jugadorMa", cascade = CascadeType.ALL)
+    private List<Carta> ma = new ArrayList<>();
+
+    @OneToMany(mappedBy = "jugador1", cascade = CascadeType.ALL)
+    private List<DistanciesJugadors> distanciesJugadors1 = new ArrayList<>();
+
+    @OneToMany(mappedBy = "jugador2", cascade = CascadeType.ALL)
+    private List<DistanciesJugadors> distanciesJugadors2 = new ArrayList<>();
+
+    @ManyToMany(mappedBy = "jugadors")
+    private List<Partida> partides = new ArrayList<>();
+
+    public Jugador() {}
+
+    // Getters y setters
     public int getId() {
         return id;
     }
@@ -121,27 +133,27 @@ public class Jugador {
         this.ma = ma;
     }
 
-    public List<Jugador> getDistancies() {
-        return distancies;
+    public List<DistanciesJugadors> getDistanciesJugadors1() {
+        return distanciesJugadors1;
     }
 
-    public void setDistancies(List<Jugador> distancies) {
-        this.distancies = distancies;
+    public void setDistanciesJugadors1(List<DistanciesJugadors> distanciesJugadors1) {
+        this.distanciesJugadors1 = distanciesJugadors1;
     }
 
-    @ManyToMany
-    @JoinTable(name = "jugador_ma",
-            joinColumns = @JoinColumn(name = "id_jugador"),
-            inverseJoinColumns = @JoinColumn(name = "id_carta"))
-    private List<Carta> ma = new ArrayList<>();
+    public List<DistanciesJugadors> getDistanciesJugadors2() {
+        return distanciesJugadors2;
+    }
 
-    @ManyToMany
-    @JoinTable(name = "jugador_distancia",
-            joinColumns = @JoinColumn(name = "id_jugador1"),
-            inverseJoinColumns = @JoinColumn(name = "id_jugador2"))
-    private List<Jugador> distancies = new ArrayList<>();
+    public void setDistanciesJugadors2(List<DistanciesJugadors> distanciesJugadors2) {
+        this.distanciesJugadors2 = distanciesJugadors2;
+    }
 
-    public Jugador() {}
+    public List<Partida> getPartides() {
+        return partides;
+    }
 
-    // Getters y setters
+    public void setPartides(List<Partida> partides) {
+        this.partides = partides;
+    }
 }

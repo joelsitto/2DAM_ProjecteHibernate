@@ -6,18 +6,28 @@ import jakarta.persistence.*;
 @Table(name = "carta_arma")
 public class CartaArma extends Carta {
 
-    @Column(name = "distancia", nullable = false)
-    private int distancia;
+    @Column(name = "distancia_arma", nullable = false)
+    private int distanciaArma;
+
+    @OneToOne(mappedBy="armaEquipada")
+    private Jugador jugadorArma;
 
     public CartaArma() {}
 
     // Getters y setters
-
-    public int getDistancia() {
-        return distancia;
+    public int getDistanciaArma() {
+        return distanciaArma;
     }
 
-    public void setDistancia(int distancia) {
-        this.distancia = distancia;
+    public void setDistanciaArma(int distanciaArma) {
+        this.distanciaArma = distanciaArma;
+    }
+
+    public Jugador getJugadorArma() {
+        return jugadorArma;
+    }
+
+    public void setJugadorArma(Jugador jugadorArma) {
+        this.jugadorArma = jugadorArma;
     }
 }

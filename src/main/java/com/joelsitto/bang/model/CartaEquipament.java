@@ -14,10 +14,13 @@ public class CartaEquipament extends Carta {
     @Column(name = "modificador_distancia", nullable = false)
     private int modificadorDistancia;
 
+    @ManyToOne
+    @JoinColumn(name = "id_jugador_equipament")
+    private Jugador jugadorEquipament;
+
     public CartaEquipament() {}
 
     // Getters y setters
-
     public TipusEquipament getTipus() {
         return tipus;
     }
@@ -32,5 +35,13 @@ public class CartaEquipament extends Carta {
 
     public void setModificadorDistancia(int modificadorDistancia) {
         this.modificadorDistancia = modificadorDistancia;
+    }
+
+    public Jugador getJugadorEquipament() {
+        return jugadorEquipament;
+    }
+
+    public void setJugadorEquipament(Jugador jugadorEquipament) {
+        this.jugadorEquipament = jugadorEquipament;
     }
 }

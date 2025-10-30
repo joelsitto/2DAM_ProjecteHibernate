@@ -31,6 +31,15 @@ public class Partida {
             inverseJoinColumns = @JoinColumn(name = "id_carta"))
     private List<Carta> pilaRobar = new ArrayList<>();
 
+    @ManyToMany
+    @JoinTable(name = "pila_descartades",
+            joinColumns = @JoinColumn(name = "id_partida"),
+            inverseJoinColumns = @JoinColumn(name = "id_carta"))
+    private List<Carta> pilaDescartades = new ArrayList<>();
+
+    public Partida() {}
+
+    // Getters y setters
     public int getId() {
         return id;
     }
@@ -78,14 +87,4 @@ public class Partida {
     public void setPilaDescartades(List<Carta> pilaDescartades) {
         this.pilaDescartades = pilaDescartades;
     }
-
-    @ManyToMany
-    @JoinTable(name = "pila_descartades",
-            joinColumns = @JoinColumn(name = "id_partida"),
-            inverseJoinColumns = @JoinColumn(name = "id_carta"))
-    private List<Carta> pilaDescartades = new ArrayList<>();
-
-    public Partida() {}
-
-    // Getters y setters
 }
