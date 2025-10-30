@@ -1,193 +1,152 @@
 package com.joelsitto;
 
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import com.joelsitto.bang.util.HibernateUtil;
 import com.joelsitto.bang.model.*;
 import com.joelsitto.bang.model.enums.*;
+import com.joelsitto.bang.dao.*;
 
-import java.util.Date;
+import java.util.*;
 
 public class Main {
 
     public static void main(String[] args) {
+        SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
 
-        System.out.println("=== CREANT BASE DE DADES HIBERNATE BANG ===\n");
+        System.out.println("=== INICIALIITZANT BASE DE DADES ===\n");
 
-        Session session = HibernateUtil.getSessionFactory().openSession();
+        // Crear dades inicials
+        crearDadesInicials(sessionFactory);
+
+        // Provar els DAOs
+        provarDAOs(sessionFactory);
+
+        HibernateUtil.shutdown();
+    }
+
+    private static void crearDadesInicials(SessionFactory sessionFactory) {
+        Session session = sessionFactory.openSession();
         Transaction tx = session.beginTransaction();
 
         try {
-            // 1. CREAR ROLES
-            System.out.println("1. Creant roles...");
+            // Crear roles
             Rol sheriff = new Rol();
             sheriff.setObjectiu("Eliminar a tots els bandits i renegats");
-
-            Rol renegat = new Rol();
-            renegat.setObjectiu("Ser l'últim jugador en peu");
+            session.persist(sheriff);
 
             Rol bandit = new Rol();
             bandit.setObjectiu("Eliminar al Sheriff");
-
-            Rol ajudant = new Rol();
-            ajudant.setObjectiu("Protegir al Sheriff");
-
-            session.persist(sheriff);
-            session.persist(renegat);
             session.persist(bandit);
-            session.persist(ajudant);
 
-            System.out.println("   ✓ 4 roles creats");
+            Rol renegat = new Rol();
+            renegat.setObjectiu("Ser l'ultim jugador en peu");
+            session.persist(renegat);
 
-            // 2. CREAR JUGADORS
-            System.out.println("\n2. Creant jugadors...");
-            Jugador jugador1 = new Jugador();
-            jugador1.setNom("Bart Cassidy");
-            jugador1.setVidaActual(4);
-            jugador1.setVidaMaxima(4);
-            jugador1.setModificadorDistanciaDef(0);
-            jugador1.setModificadorDistanciaOff(0);
-            jugador1.setRol(sheriff);
+            // Crear cartes per la pila
+            for (int i = 1; i <= 10; i++) {
+                CartaUs bang = new CartaUs();
+                bang.setNom_carta("Bang!");
+                bang.setDescripcio_carta("Dispara a un jugador");
+                bang.setTipusUs(TipusUs.BANG);
+                session.persist(bang);
+            }
 
-            Jugador jugador2 = new Jugador();
-            jugador2.setNom("Jesse Jones");
-            jugador2.setVidaActual(4);
-            jugador2.setVidaMaxima(4);
-            jugador2.setModificadorDistanciaDef(0);
-            jugador2.setModificadorDistanciaOff(0);
-            jugador2.setRol(bandit);
+            for (int i = 1; i <= 8; i++) {
+                CartaUs fallaste = new CartaUs();
+                fallaste.setNom_carta("Fallaste!");
+                fallaste.setDescripcio_carta("Esquiva un Bang!");
+                fallaste.setTipusUs(TipusUs.FALLASTE);
+                session.persist(fallaste);
+            }
 
-            session.persist(jugador1);
-            session.persist(jugador2);
+            for (int i = 1; i <= 6; i++) {
+                CartaUs birra = new CartaUs();
+                birra.setNom_carta("Birra");
+                birra.setDescripcio_carta("Recupera 1 punt de vida");
+                birra.setTipusUs(TipusUs.BIRRA);
+                session.persist(birra);
+            }
 
-            System.out.println("   ✓ 2 jugadors creats");
-
-            // 3. CREAR CARTES ARMA
-            System.out.println("\n3. Creant cartes d'arma...");
-            CartaArma colt45 = new CartaArma();
-            colt45.setNom_carta("Colt .45");
-            colt45.setDescripcio_carta("Arma bàsica amb distància 1");
-            colt45.setDistanciaArma(1);
+            // Crear armes
+            CartaArma colt = new CartaArma();
+            colt.setNom_carta("Colt .45");
+            colt.setDescripcio_carta("Arma basica");
+            colt.setDistanciaArma(1);
+            session.persist(colt);
 
             CartaArma winchester = new CartaArma();
             winchester.setNom_carta("Winchester");
-            winchester.setDescripcio_carta("Rifle amb distància 5");
+            winchester.setDescripcio_carta("Rifle de llarg abast");
             winchester.setDistanciaArma(5);
-
-            session.persist(colt45);
             session.persist(winchester);
 
-            // Equipar arma al jugador1
-            jugador1.setArmaEquipada(colt45);
-            session.merge(jugador1);
-
-            System.out.println("   ✓ 2 armes creades");
-
-            // 4. CREAR CARTES D'EQUIPAMENT
-            System.out.println("\n4. Creant cartes d'equipament...");
-            CartaEquipament cavall = new CartaEquipament();
-            cavall.setNom_carta("Mustang");
-            cavall.setDescripcio_carta("Augmenta la distància dels altres jugadors");
-            cavall.setTipus(TipusEquipament.CAVALL);
-            cavall.setModificadorDistancia(1);
-            cavall.setJugadorEquipament(jugador1);
-
+            // Crear equipaments
             CartaEquipament barril = new CartaEquipament();
             barril.setNom_carta("Barril");
-            barril.setDescripcio_carta("Permet esquivar Bang!");
+            barril.setDescripcio_carta("Permet esquivar");
             barril.setTipus(TipusEquipament.BARRIL);
             barril.setModificadorDistancia(0);
-            barril.setJugadorEquipament(jugador2);
-
-            session.persist(cavall);
             session.persist(barril);
 
-            System.out.println("   ✓ 2 equipaments creats");
+            CartaEquipament mustang = new CartaEquipament();
+            mustang.setNom_carta("Mustang");
+            mustang.setDescripcio_carta("Augmenta la distancia");
+            mustang.setTipus(TipusEquipament.CAVALL);
+            mustang.setModificadorDistancia(1);
+            session.persist(mustang);
 
-            // 5. CREAR CARTES D'ÚS
-            System.out.println("\n5. Creant cartes d'ús...");
-            CartaUs bang1 = new CartaUs();
-            bang1.setNom_carta("Bang!");
-            bang1.setDescripcio_carta("Dispara a un jugador a distància 1");
-            bang1.setTipusUs(TipusUs.BANG);
-            bang1.setJugadorMa(jugador1);
-
-            CartaUs bang2 = new CartaUs();
-            bang2.setNom_carta("Bang!");
-            bang2.setDescripcio_carta("Dispara a un jugador a distància 1");
-            bang2.setTipusUs(TipusUs.BANG);
-            bang2.setJugadorMa(jugador1);
-
-            CartaUs fallaste = new CartaUs();
-            fallaste.setNom_carta("Fallaste!");
-            fallaste.setDescripcio_carta("Esquiva un Bang!");
-            fallaste.setTipusUs(TipusUs.FALLASTE);
-            fallaste.setJugadorMa(jugador2);
-
-            CartaUs birra = new CartaUs();
-            birra.setNom_carta("Birra");
-            birra.setDescripcio_carta("Recupera 1 punt de vida");
-            birra.setTipusUs(TipusUs.BIRRA);
-            birra.setJugadorMa(jugador2);
-
-            session.persist(bang1);
-            session.persist(bang2);
-            session.persist(fallaste);
-            session.persist(birra);
-
-            System.out.println("   ✓ 4 cartes d'ús creades");
-
-            // 6. CREAR PARTIDA
-            System.out.println("\n6. Creant partida...");
-            Partida partida = new Partida();
-            partida.setEstat("En curs");
-            partida.setDataInici(new Date());
-            partida.getJugadors().add(jugador1);
-            partida.getJugadors().add(jugador2);
-
-            session.persist(partida);
-
-            System.out.println("   ✓ 1 partida creada");
-
-            // 7. CREAR DISTÀNCIES ENTRE JUGADORS
-            System.out.println("\n7. Creant distàncies entre jugadors...");
-            DistanciesJugadors distancia1 = new DistanciesJugadors();
-            distancia1.setJugador1(jugador1);
-            distancia1.setJugador2(jugador2);
-            distancia1.setDistancia(1);
-
-            DistanciesJugadors distancia2 = new DistanciesJugadors();
-            distancia2.setJugador1(jugador2);
-            distancia2.setJugador2(jugador1);
-            distancia2.setDistancia(1);
-
-            session.persist(distancia1);
-            session.persist(distancia2);
-
-            System.out.println("   ✓ Distàncies configurades");
-
-            // COMMIT
             tx.commit();
-
-            System.out.println("\n=== ✓ BASE DE DADES CREADA CORRECTAMENT! ===");
-            System.out.println("\nResum:");
-            System.out.println("- 4 Roles");
-            System.out.println("- 2 Jugadors");
-            System.out.println("- 2 Armes");
-            System.out.println("- 2 Equipaments");
-            System.out.println("- 4 Cartes d'ús");
-            System.out.println("- 1 Partida");
-            System.out.println("- 2 Relacions de distància");
+            System.out.println("Dades inicials creades correctament!\n");
 
         } catch (Exception e) {
-            if (tx != null) {
-                tx.rollback();
-                System.out.println("\n✗ ERROR! Transacció revertida.");
-            }
+            if (tx != null) tx.rollback();
             e.printStackTrace();
         } finally {
             session.close();
-            HibernateUtil.shutdown();
         }
     }
+
+    private static void provarDAOs(SessionFactory sessionFactory) {
+        IPartidaDAO partidaDAO = new PartidaDAOImpl();
+        IJugadorDAO jugadorDAO = new JugadorDAOImpl();
+
+        // Obtenir roles
+        Session session = sessionFactory.openSession();
+        List<Rol> roles = session.createQuery("FROM Rol", Rol.class).getResultList();
+        session.close();
+
+        // Iniciar partida
+        System.out.println("\n=== INICIANT PARTIDA ===");
+        List<String> noms = Arrays.asList("Bart Cassidy", "Jesse Jones", "Paul Regret");
+        Partida partida = partidaDAO.iniciarPartida(sessionFactory, noms, roles);
+
+        // Llistar jugadors
+        System.out.println("\n=== LLISTANT JUGADORS ===");
+        List<Jugador> jugadors = partidaDAO.llistarJugadorsPartida(sessionFactory, partida.getId());
+
+        if (jugadors.size() >= 2) {
+            int jugador1Id = jugadors.get(0).getId();
+            int jugador2Id = jugadors.get(1).getId();
+
+            // Donar cartes als jugadors
+            System.out.println("\n=== ROBANT CARTES ===");
+            for (int i = 0; i < 3; i++) {
+                jugadorDAO.robarCarta(sessionFactory, partida.getId(), jugador1Id);
+                jugadorDAO.robarCarta(sessionFactory, partida.getId(), jugador2Id);
+            }
+
+            // Mostrar ma
+            System.out.println("\n=== MOSTRANT MA ===");
+            jugadorDAO.mostrarMaJugador(sessionFactory, jugador1Id);
+
+            // Mostrar estat partida
+            System.out.println("\n=== ESTAT PARTIDA ===");
+            partidaDAO.mostrarPartida(sessionFactory, partida.getId());
+        }
+
+        System.out.println("\n=== TEST FINALITZAT ===");
+    }
 }
+

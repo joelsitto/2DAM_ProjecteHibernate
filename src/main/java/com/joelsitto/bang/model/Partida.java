@@ -19,6 +19,9 @@ public class Partida {
     @Column(name = "data_inici", nullable = false)
     private Date dataInici;
 
+    @Column(name = "actiu", nullable = false)
+    private boolean actiu;
+
     @ManyToMany
     @JoinTable(name = "partida_jugadors",
             joinColumns = @JoinColumn(name = "id_partida"),
@@ -62,6 +65,14 @@ public class Partida {
 
     public void setDataInici(Date dataInici) {
         this.dataInici = dataInici;
+    }
+
+    public boolean isActiu() {
+        return actiu;
+    }
+
+    public void setActiu(boolean actiu) {
+        this.actiu = actiu;
     }
 
     public List<Jugador> getJugadors() {
