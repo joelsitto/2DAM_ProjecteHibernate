@@ -22,6 +22,12 @@ public class DistanciesJugadors {
 
     public DistanciesJugadors() {}
 
+    public DistanciesJugadors(Jugador jugador1, Jugador jugador2, int distancia) {
+        this.jugador1 = jugador1;
+        this.jugador2 = jugador2;
+        this.distancia = distancia;
+    }
+
     // Getters y setters
     public int getId_distancia() {
         return id_distancia;

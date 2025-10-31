@@ -42,6 +42,12 @@ public class Partida {
 
     public Partida() {}
 
+    public Partida(String estat, Date dataInici, boolean actiu) {
+        this.estat = estat;
+        this.dataInici = dataInici;
+        this.actiu = actiu;
+    }
+
     // Getters y setters
     public int getId() {
         return id;

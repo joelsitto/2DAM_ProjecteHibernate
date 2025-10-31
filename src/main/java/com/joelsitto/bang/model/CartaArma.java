@@ -1,5 +1,6 @@
 package com.joelsitto.bang.model;
 
+import com.joelsitto.bang.model.enums.TipusColl;
 import jakarta.persistence.*;
 
 @Entity
@@ -13,6 +14,11 @@ public class CartaArma extends Carta {
     private Jugador jugadorArma;
 
     public CartaArma() {}
+
+    public CartaArma(String nom_carta, String descripcio_carta, TipusColl coll, int distanciaArma) {
+        super(nom_carta, descripcio_carta, coll);
+        this.distanciaArma = distanciaArma;
+    }
 
     // Getters y setters
     public int getDistanciaArma() {

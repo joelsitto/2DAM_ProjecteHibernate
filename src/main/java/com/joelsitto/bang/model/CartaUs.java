@@ -1,4 +1,5 @@
 package com.joelsitto.bang.model;
+import com.joelsitto.bang.model.enums.TipusColl;
 import com.joelsitto.bang.model.enums.TipusUs;
 import jakarta.persistence.*;
 
@@ -11,6 +12,11 @@ public class CartaUs extends Carta {
     private TipusUs tipusUs;
 
     public CartaUs() {}
+    public CartaUs(String nom_carta, String descripcio_carta, TipusColl coll, TipusUs tipusUs) {
+        super(nom_carta, descripcio_carta, coll);
+        this.tipusUs = tipusUs;
+    }
+
 
     // Getters y setters
     public TipusUs getTipusUs() {

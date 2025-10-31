@@ -20,6 +20,10 @@ public class Rol {
 
     public Rol() {}
 
+    public Rol(String objectiu) {
+        this.objectiu = objectiu;
+    }
+
     // Getters y setters
 
     public int getId() {

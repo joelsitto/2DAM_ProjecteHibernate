@@ -1,5 +1,6 @@
 package com.joelsitto.bang.model;
 
+import com.joelsitto.bang.model.enums.*;
 import jakarta.persistence.*;
 
 import java.util.*;
@@ -20,6 +21,10 @@ public abstract class Carta {
     @Column(name = "descripcio_carta", length = 255)
     private String descripcio_carta;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "coll", length = 30, nullable = false)
+    private TipusColl coll;
+
     @ManyToMany(mappedBy="pilaRobar")
     private List<Partida> partidasPilaRobar = new ArrayList<>();
 
@@ -31,6 +36,12 @@ public abstract class Carta {
     private Jugador jugadorMa;
 
     public Carta() {}
+
+    public Carta(String nom_carta, String descripcio_carta, TipusColl coll) {
+        this.nom_carta = nom_carta;
+        this.descripcio_carta = descripcio_carta;
+        this.coll = coll;
+    }
 
     // Getters y setters
     public int getId() {
@@ -73,10 +84,15 @@ public abstract class Carta {
         this.partidasPilaDescartades = partidasPilaDescartades;
     }
 
-    public Jugador getJugadorMa() {
-        return jugadorMa;
+    public Jugador getJugadorMa() {return jugadorMa;}
+
+    public TipusColl getColl() {
+        return coll;
     }
 
+    public void setColl(TipusColl coll) {
+        this.coll = coll;
+    }
     public void setJugadorMa(Jugador jugadorMa) {
         this.jugadorMa = jugadorMa;
     }

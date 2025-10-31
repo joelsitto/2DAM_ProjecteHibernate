@@ -52,6 +52,12 @@ public class Jugador {
 
     public Jugador() {}
 
+    public Jugador(String nom, int vidaActual, int vidaMaxima, Rol rol) {
+        this.nom = nom;
+        this.vidaActual = vidaActual;
+        this.vidaMaxima = vidaMaxima;
+        this.rol = rol;
+    }
     // Getters y setters
     public int getId() {
         return id;
