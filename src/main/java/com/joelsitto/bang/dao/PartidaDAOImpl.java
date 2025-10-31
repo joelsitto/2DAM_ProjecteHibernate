@@ -1,6 +1,9 @@
 package com.joelsitto.bang.dao;
 
 import com.joelsitto.bang.model.*;
+import com.joelsitto.bang.model.enums.TipusColl;
+import com.joelsitto.bang.model.enums.TipusEquipament;
+import com.joelsitto.bang.model.enums.TipusUs;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -11,205 +14,412 @@ import java.util.*;
 public class PartidaDAOImpl implements IPartidaDAO {
 
     @Override
-    public List<Jugador> llistarJugadorsPartida(SessionFactory sessionFactory, int idPartida) {
-        List<Jugador> jugadors = new ArrayList<>();
-
+    public void llistarJugadorsPartida(SessionFactory sessionFactory, int idPartida) {
+        Transaction tx = null;
         try (Session session = sessionFactory.openSession()) {
-            String hql = "SELECT j FROM Partida p JOIN p.jugadors j WHERE p.id = :idPartida";
-            Query<Jugador> query = session.createQuery(hql, Jugador.class);
-            query.setParameter("idPartida", idPartida);
-            jugadors = query.getResultList();
+            tx = session.beginTransaction();
 
-            System.out.println("=== JUGADORS DE LA PARTIDA " + idPartida + " ===");
-            for (Jugador j : jugadors) {
-                System.out.println("- " + j.getNom());
+            Partida partida = session.get(Partida.class, idPartida);
+
+            if (partida == null) {
+                System.out.println("No s'ha trobat cap partida amb l'id: " + idPartida);
+                tx.rollback();
+                return;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        return jugadors;
+            System.out.println("=== Jugadors de la Partida " + idPartida + " ===");
+            List<Jugador> jugadors = partida.getJugadors();
+
+            if (jugadors.isEmpty()) {
+                System.out.println("No hi ha jugadors en aquesta partida.");
+            } else {
+                for (Jugador jugador : jugadors) {
+                    System.out.print("- " + jugador.getNom());
+                    System.out.print(" | Vida: " + jugador.getVidaActual() + "/" + jugador.getVidaMaxima());
+
+                    if (jugador.getRol().getObjectiu().equals("Sheriff") || jugador.getVidaActual() <= 0) {
+                        System.out.print(" | Rol: " + jugador.getRol().getObjectiu());
+                    }
+
+                    if (jugador.getVidaActual() <= 0) {
+                        System.out.print(" [ELIMINAT]");
+                    }
+
+                    System.out.println();
+                }
+            }
+
+            tx.commit();
+        } catch (Exception e) {
+            if (tx != null)
+                tx.rollback();
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Override
     public void mostrarPartida(SessionFactory sessionFactory, int idPartida) {
+        Transaction tx = null;
         try (Session session = sessionFactory.openSession()) {
+            tx = session.beginTransaction();
+
             Partida partida = session.get(Partida.class, idPartida);
 
             if (partida == null) {
-                System.out.println("Partida no trobada!");
+                System.out.println("No s'ha trobat cap partida amb l'id: " + idPartida);
+                tx.rollback();
                 return;
             }
 
-            System.out.println("\n========================================");
-            System.out.println("    ESTAT DE LA PARTIDA #" + idPartida);
+            System.out.println("========================================");
+            System.out.println("    ESTAT DE LA PARTIDA " + idPartida);
             System.out.println("========================================");
             System.out.println("Estat: " + partida.getEstat());
-            System.out.println("\n--- JUGADORS VIUS ---");
+            System.out.println("Data inici: " + partida.getDataInici());
+            System.out.println();
 
-            for (Jugador j : partida.getJugadors()) {
-                if (j.getVidaActual() > 0) {
-                    System.out.println("\n" + j.getNom());
-                    System.out.println("  Vida: " + j.getVidaActual() + "/" + j.getVidaMaxima());
+            List<Jugador> jugadors = partida.getJugadors();
 
-                    if (j.getArmaEquipada() != null) {
-                        System.out.println("  Arma: " + j.getArmaEquipada().getNom_carta());
+            if (jugadors.isEmpty()) {
+                System.out.println("No hi ha jugadors en aquesta partida.");
+            } else {
+                System.out.println("--- JUGADORS VIUS ---");
+                for (Jugador jugador : jugadors) {
+                    if (jugador.getVidaActual() > 0) {
+                        System.out.println("\n>> " + jugador.getNom());
+                        System.out.println("   Vida: " + jugador.getVidaActual() + "/" + jugador.getVidaMaxima());
+
+                        if (jugador.getRol().getObjectiu().equals("Sheriff") || jugador.getVidaActual() <= 0) {
+                            System.out.println("   Rol: " + jugador.getRol().getObjectiu());
+                        } else {
+                            System.out.println("   Rol: [OCULT]");
+                        }
+
+                        if (jugador.getArmaEquipada() != null) {
+                            System.out.println("   Arma: " + jugador.getArmaEquipada().getNom_carta() +
+                                             " (Distancia: " + jugador.getArmaEquipada().getDistanciaArma() + ")");
+                        } else {
+                            System.out.println("   Arma: Cap");
+                        }
+
+                        List<CartaEquipament> equipaments = jugador.getEquipaments();
+                        if (!equipaments.isEmpty()) {
+                            System.out.println("   Equipaments:");
+                            for (CartaEquipament eq : equipaments) {
+                                System.out.println("      - " + eq.getNom_carta() + " (" + eq.getTipus() + ")");
+                            }
+                        } else {
+                            System.out.println("   Equipaments: Cap");
+                        }
                     }
                 }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
-    @Override
-    public Partida iniciarPartida(SessionFactory sessionFactory, List<String> nomsJugadors, List<Rol> roles) {
-        Transaction tx = null;
-        Partida partida = null;
-
-        try (Session session = sessionFactory.openSession()) {
-            tx = session.beginTransaction();
-
-            partida = new Partida();
-            partida.setEstat("En curs");
-            partida.setDataInici(new Date());
-            partida.setActiu(true);
-            session.persist(partida);
-
-            Collections.shuffle(roles);
-
-            List<Jugador> jugadors = new ArrayList<>();
-            for (int i = 0; i < nomsJugadors.size(); i++) {
-                Jugador jugador = new Jugador();
-                jugador.setNom(nomsJugadors.get(i));
-                jugador.setRol(roles.get(i));
-
-                if (roles.get(i).getObjectiu().contains("Eliminar a tots")) {
-                    jugador.setVidaMaxima(5);
-                    jugador.setVidaActual(5);
-                } else {
-                    jugador.setVidaMaxima(4);
-                    jugador.setVidaActual(4);
+                System.out.println("\n--- JUGADORS ELIMINATS ---");
+                boolean hayEliminados = false;
+                for (Jugador jugador : jugadors) {
+                    if (jugador.getVidaActual() <= 0) {
+                        hayEliminados = true;
+                        System.out.println(">> " + jugador.getNom() + " - Rol: " + jugador.getRol().getObjectiu() + " [ELIMINAT]");
+                    }
                 }
-
-                jugador.setModificadorDistanciaDef(0);
-                jugador.setModificadorDistanciaOff(0);
-
-                session.persist(jugador);
-                jugadors.add(jugador);
-                partida.getJugadors().add(jugador);
-            }
-
-            int numJugadors = jugadors.size();
-            for (int i = 0; i < numJugadors; i++) {
-                for (int j = i + 1; j < numJugadors; j++) {
-                    int distancia = Math.min(j - i, numJugadors - (j - i));
-
-                    DistanciesJugadors dist1 = new DistanciesJugadors();
-                    dist1.setJugador1(jugadors.get(i));
-                    dist1.setJugador2(jugadors.get(j));
-                    dist1.setDistancia(distancia);
-                    session.persist(dist1);
-
-                    DistanciesJugadors dist2 = new DistanciesJugadors();
-                    dist2.setJugador1(jugadors.get(j));
-                    dist2.setJugador2(jugadors.get(i));
-                    dist2.setDistancia(distancia);
-                    session.persist(dist2);
+                if (!hayEliminados) {
+                    System.out.println("Cap jugador eliminat");
                 }
             }
+
+            System.out.println("\n========================================");
 
             tx.commit();
-            System.out.println("Partida iniciada amb " + nomsJugadors.size() + " jugadors");
-
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null)
+                tx.rollback();
             e.printStackTrace();
             throw e;
         }
-
-        return partida;
     }
 
     @Override
-    public String comprovarVictoria(SessionFactory sessionFactory, int idPartida) {
-        String resultat = null;
-
-        try (Session session = sessionFactory.openSession()) {
-            Partida partida = session.get(Partida.class, idPartida);
-
-            boolean sheriffViu = false;
-            boolean malfactorViu = false;
-            boolean renegatViu = false;
-            int jugadorsVius = 0;
-
-            for (Jugador j : partida.getJugadors()) {
-                if (j.getVidaActual() > 0) {
-                    jugadorsVius++;
-                    String objectiu = j.getRol().getObjectiu();
-
-                    if (objectiu.contains("Eliminar a tots")) {
-                        sheriffViu = true;
-                    } else if (objectiu.contains("Eliminar al Sheriff")) {
-                        malfactorViu = true;
-                    } else if (objectiu.contains("ultim jugador")) {
-                        renegatViu = true;
-                    }
-                }
-            }
-
-            if (!sheriffViu && malfactorViu) {
-                resultat = "VICTORIA DELS MALFACTORS";
-            } else if (sheriffViu && !malfactorViu && !renegatViu) {
-                resultat = "VICTORIA DEL SHERIFF";
-            } else if (renegatViu && jugadorsVius == 1) {
-                resultat = "VICTORIA DEL RENEGAT";
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return resultat;
-    }
-
-    @Override
-    public String mostrarCarta(SessionFactory sessionFactory, int idPartida) {
+    public Partida iniciarPartida(SessionFactory sessionFactory) {
         Transaction tx = null;
-        String coll = null;
-
         try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
-            Partida partida = session.get(Partida.class, idPartida);
+            // Crear o obtener los roles
+            Rol rolSheriff = obtenerOCrearRol(session, "Sheriff");
+            Rol rolForajido = obtenerOCrearRol(session, "Forajido");
+            Rol rolRenegado = obtenerOCrearRol(session, "Renegado");
 
-            if (partida.getPilaRobar().isEmpty()) {
-                List<Carta> descartades = new ArrayList<>(partida.getPilaDescartades());
-                Collections.shuffle(descartades);
-                partida.getPilaRobar().addAll(descartades);
-                partida.getPilaDescartades().clear();
+            // Crear la partida
+            Partida partida = new Partida("En curs", new Date(), true);
+            session.persist(partida);
+
+            // Crear los 4 jugadores con roles aleatorios
+            List<Rol> rolesDisponibles = new ArrayList<>();
+            rolesDisponibles.add(rolSheriff);
+            rolesDisponibles.add(rolForajido);
+            rolesDisponibles.add(rolForajido);
+            rolesDisponibles.add(rolRenegado);
+            Collections.shuffle(rolesDisponibles);
+
+            List<Jugador> jugadores = new ArrayList<>();
+            String[] nombresJugadores = {"Jugador 1", "Jugador 2", "Jugador 3", "Jugador 4"};
+
+            for (int i = 0; i < 4; i++) {
+                Jugador jugador = new Jugador(nombresJugadores[i], 4, 4, rolesDisponibles.get(i));
+                session.persist(jugador);
+                jugadores.add(jugador);
+                partida.getJugadors().add(jugador);
             }
 
-            Carta carta = partida.getPilaRobar().remove(0);
-            partida.getPilaDescartades().add(carta);
+            // Establecer distancias entre jugadores (en circulo)
+            for (int i = 0; i < jugadores.size(); i++) {
+                for (int j = i + 1; j < jugadores.size(); j++) {
+                    int distancia = Math.min(j - i, jugadores.size() - (j - i));
+                    DistanciesJugadors dist = new DistanciesJugadors(jugadores.get(i), jugadores.get(j), distancia);
+                    session.persist(dist);
+                }
+            }
 
-            String[] colls = {"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"};
-            String[] pals = {"Cors", "Diamants", "Trebols", "Piques"};
-            coll = colls[new Random().nextInt(colls.length)] + " de " +
-                   pals[new Random().nextInt(pals.length)];
+            // Crear el mazo de cartas
+            List<Carta> mazo = crearMazo(session);
+
+            // Barajar el mazo
+            Collections.shuffle(mazo);
+
+            // Añadir todas las cartas a la pila de robar de la partida
+            partida.getPilaRobar().addAll(mazo);
+
+            // Repartir 4 cartas a cada jugador
+            int indiceCartaActual = 0;
+            for (Jugador jugador : jugadores) {
+                for (int i = 0; i < 4; i++) {
+                    if (indiceCartaActual < mazo.size()) {
+                        Carta carta = mazo.get(indiceCartaActual);
+                        carta.setJugadorMa(jugador);
+                        jugador.getMa().add(carta);
+                        partida.getPilaRobar().remove(carta);
+                        indiceCartaActual++;
+                    }
+                }
+            }
 
             session.merge(partida);
             tx.commit();
 
-            System.out.println("Carta: " + coll);
+            System.out.println("Partida iniciada amb exit! ID: " + partida.getId());
+            return partida;
 
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null)
+                tx.rollback();
             e.printStackTrace();
             throw e;
         }
+    }
 
-        return coll;
+    private Rol obtenerOCrearRol(Session session, String objectiu) {
+        String hql = "FROM Rol WHERE objectiu = :objectiu";
+        Query<Rol> query = session.createQuery(hql, Rol.class);
+        query.setParameter("objectiu", objectiu);
+        Rol rol = query.uniqueResult();
+
+        if (rol == null) {
+            rol = new Rol(objectiu);
+            session.persist(rol);
+        }
+
+        return rol;
+    }
+
+    private List<Carta> crearMazo(Session session) {
+        List<Carta> mazo = new ArrayList<>();
+
+        TipusColl[] colls = TipusColl.values();
+
+        // Crear cartas de uso (BANG, FALLASTE, BIRRA)
+        for (int i = 0; i < 25; i++) {
+            TipusColl coll = colls[i % colls.length];
+            CartaUs cartaBang = new CartaUs("BANG!", "Ataca a un jugador", coll, TipusUs.BANG);
+            session.persist(cartaBang);
+            mazo.add(cartaBang);
+        }
+
+        for (int i = 0; i < 12; i++) {
+            TipusColl coll = colls[i % colls.length];
+            CartaUs cartaFallaste = new CartaUs("Fallaste!", "Evita un BANG!", coll, TipusUs.FALLASTE);
+            session.persist(cartaFallaste);
+            mazo.add(cartaFallaste);
+        }
+
+        for (int i = 0; i < 6; i++) {
+            TipusColl coll = colls[i % colls.length];
+            CartaUs cartaBirra = new CartaUs("Birra", "Recupera 1 vida", coll, TipusUs.BIRRA);
+            session.persist(cartaBirra);
+            mazo.add(cartaBirra);
+        }
+
+        // Crear armas
+        String[] nombresArmas = {"Volcanic", "Schofield", "Remington", "Rev Carabine", "Winchester"};
+        int[] distanciasArmas = {1, 2, 3, 4, 5};
+
+        for (int i = 0; i < nombresArmas.length; i++) {
+            for (int j = 0; j < 2; j++) {
+                TipusColl coll = colls[(i + j) % colls.length];
+                CartaArma arma = new CartaArma(nombresArmas[i], "Arma de distancia " + distanciasArmas[i],
+                                               coll, distanciasArmas[i]);
+                session.persist(arma);
+                mazo.add(arma);
+            }
+        }
+
+        // Crear equipamientos
+        for (int i = 0; i < 3; i++) {
+            TipusColl coll = colls[i % colls.length];
+            CartaEquipament mustang = new CartaEquipament("Mustang", "Augmenta la distancia defensiva",
+                                                          coll, TipusEquipament.CAVALL, 1);
+            session.persist(mustang);
+            mazo.add(mustang);
+        }
+
+        for (int i = 0; i < 3; i++) {
+            TipusColl coll = colls[i % colls.length];
+            CartaEquipament mira = new CartaEquipament("Mira Telescopica", "Augmenta la distancia ofensiva",
+                                                       coll, TipusEquipament.MIRA_TELESCOPICA, 1);
+            session.persist(mira);
+            mazo.add(mira);
+        }
+
+        for (int i = 0; i < 3; i++) {
+            TipusColl coll = colls[i % colls.length];
+            CartaEquipament barril = new CartaEquipament("Barril", "Pot esquivar BANG!",
+                                                         coll, TipusEquipament.BARRIL, 0);
+            session.persist(barril);
+            mazo.add(barril);
+        }
+
+        return mazo;
+    }
+
+    @Override
+    public void comprovarVictoria(SessionFactory sessionFactory, Partida partida) {
+        Transaction tx = null;
+        try (Session session = sessionFactory.openSession()) {
+            tx = session.beginTransaction();
+
+            Partida partidaActualizada = session.get(Partida.class, partida.getId());
+
+            if (partidaActualizada == null) {
+                System.out.println("No s'ha trobat la partida");
+                tx.rollback();
+                return;
+            }
+
+            List<Jugador> jugadors = partidaActualizada.getJugadors();
+
+            // Contar jugadores vivos por rol
+            boolean sheriffViu = false;
+            int forajidosVius = 0;
+            int renegadosVius = 0;
+            int ajudantsVius = 0;
+
+            for (Jugador jugador : jugadors) {
+                if (jugador.getVidaActual() > 0) {
+                    String rol = jugador.getRol().getObjectiu();
+                    if (rol.equals("Sheriff")) {
+                        sheriffViu = true;
+                    } else if (rol.equals("Forajido")) {
+                        forajidosVius++;
+                    } else if (rol.equals("Renegado")) {
+                        renegadosVius++;
+                    }
+                }
+            }
+
+            // Comprobar condiciones de victoria
+            if (!sheriffViu && forajidosVius > 0) {
+                System.out.println("===========================================");
+                System.out.println("    ELS FORAJIDOS HAN GUANYAT!");
+                System.out.println("    El Sheriff ha mort");
+                System.out.println("===========================================");
+                partidaActualizada.setEstat("Finalitzada - Victoria Forajidos");
+                partidaActualizada.setActiu(false);
+            } else if (!sheriffViu && forajidosVius == 0 && renegadosVius > 0) {
+                System.out.println("===========================================");
+                System.out.println("    EL RENEGAT HA GUANYAT!");
+                System.out.println("    El Sheriff ha mort i no queden Forajidos");
+                System.out.println("===========================================");
+                partidaActualizada.setEstat("Finalitzada - Victoria Renegat");
+                partidaActualizada.setActiu(false);
+            } else if (sheriffViu && forajidosVius == 0 && renegadosVius == 0) {
+                System.out.println("===========================================");
+                System.out.println("    EL SHERIFF HA GUANYAT!");
+                System.out.println("    Tots els Forajidos i Renegats han mort");
+                System.out.println("===========================================");
+                partidaActualizada.setEstat("Finalitzada - Victoria Sheriff");
+                partidaActualizada.setActiu(false);
+            } else if (sheriffViu && forajidosVius == 0 && renegadosVius == 1 && ajudantsVius == 0) {
+                System.out.println("===========================================");
+                System.out.println("    EL RENEGAT HA GUANYAT!");
+                System.out.println("    Nomes queden el Sheriff i el Renegat");
+                System.out.println("===========================================");
+                partidaActualizada.setEstat("Finalitzada - Victoria Renegat");
+                partidaActualizada.setActiu(false);
+            }
+
+            session.merge(partidaActualizada);
+            tx.commit();
+
+        } catch (Exception e) {
+            if (tx != null)
+                tx.rollback();
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @Override
+    public TipusColl mostrarCarta(SessionFactory sessionFactory, int idPartida) {
+        Transaction tx = null;
+        try (Session session = sessionFactory.openSession()) {
+            tx = session.beginTransaction();
+
+            Partida partida = session.get(Partida.class, idPartida);
+
+            if (partida == null) {
+                System.out.println("No s'ha trobat la partida");
+                tx.rollback();
+                return null;
+            }
+
+            List<Carta> pilaRobar = partida.getPilaRobar();
+
+            if (pilaRobar.isEmpty()) {
+                System.out.println("La pila de robar esta buida");
+                tx.rollback();
+                return null;
+            }
+
+            // Sacar la primera carta de la pila de robar
+            Carta carta = pilaRobar.get(0);
+            TipusColl coll = carta.getColl();
+
+            // Mover la carta a la pila de descartadas
+            partida.getPilaRobar().remove(carta);
+            partida.getPilaDescartades().add(carta);
+
+            session.merge(partida);
+            tx.commit();
+
+            System.out.println("Carta mostrada: " + carta.getNom_carta() + " - Coll: " + coll);
+            return coll;
+
+        } catch (Exception e) {
+            if (tx != null)
+                tx.rollback();
+            e.printStackTrace();
+            throw e;
+        }
     }
 }
 
