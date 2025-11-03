@@ -32,8 +32,21 @@ public class JugadorDAOImpl implements IJugadorDAO {
             } else {
                 for (int i = 0; i < cartesMa.size(); i++) {
                     Carta carta = cartesMa.get(i);
-                    System.out.println((i + 1) + ". " + carta.getNom_carta() +
-                                     " (" + carta.getColl() + ") [ID: " + carta.getId() + "]");
+                    System.out.print((i + 1) + ". " + carta.getNom_carta() + " (" + carta.getColl() + ")");
+
+                    // Afegir informació extra segons el tipus de carta
+                    if (carta instanceof CartaArma) {
+                        CartaArma arma = (CartaArma) carta;
+                        System.out.print(" - ARMA (Dist: " + arma.getDistanciaArma() + ")");
+                    } else if (carta instanceof CartaEquipament) {
+                        CartaEquipament eq = (CartaEquipament) carta;
+                        System.out.print(" - EQUIPAMENT (" + eq.getTipus() + ")");
+                    } else if (carta instanceof CartaUs) {
+                        CartaUs us = (CartaUs) carta;
+                        System.out.print(" - " + us.getTipusUs());
+                    }
+
+                    System.out.println(" [ID: " + carta.getId() + "]");
                 }
                 System.out.println("Total: " + cartesMa.size() + " cartes");
             }
@@ -61,7 +74,11 @@ public class JugadorDAOImpl implements IJugadorDAO {
                 return;
             }
 
-            System.out.println("\n" + atacant.getNom() + " ataca a " + objectiu.getNom());
+            System.out.println("\n========== ATAC BANG! ==========");
+            System.out.println(atacant.getNom() + " (Rol: " + atacant.getRol().getObjectiu() + ") ataca a " +
+                             objectiu.getNom() + " (Rol: " + objectiu.getRol().getObjectiu() + ")");
+            System.out.println("Vida atacant: " + atacant.getVidaActual() + "/" + atacant.getVidaMaxima());
+            System.out.println("Vida objectiu: " + objectiu.getVidaActual() + "/" + objectiu.getVidaMaxima());
 
             // Comprovar que te carta BANG a la ma
             CartaUs cartaBang = null;
@@ -81,12 +98,6 @@ public class JugadorDAOImpl implements IJugadorDAO {
                 return;
             }
 
-            // Verificar distancia
-            if (!comprovarDistanciaAtac(sessionFactory, idJugadorAtacant, idJugadorObjectiu)) {
-                System.out.println(objectiu.getNom() + " esta massa lluny!");
-                tx.rollback();
-                return;
-            }
 
             // Descartar la carta BANG a la pila de descartades
             cartaBang.setJugadorMa(null);
@@ -149,11 +160,15 @@ public class JugadorDAOImpl implements IJugadorDAO {
             }
 
             // L'atac impacta
+            System.out.println("\n>>> L'ATAC IMPACTA! <<<");
             System.out.println(objectiu.getNom() + " rep 1 bala!");
+            System.out.println("Vida abans: " + objectiu.getVidaActual());
             objectiu.setVidaActual(objectiu.getVidaActual() - 1);
+            System.out.println("Vida despres: " + objectiu.getVidaActual());
             session.merge(objectiu);
             session.merge(partida);
             tx.commit();
+            System.out.println("================================\n");
 
             // Comprovar si ha estat eliminat
             comprovarEliminacio(sessionFactory, idPartida, idJugadorObjectiu);
@@ -202,6 +217,8 @@ public class JugadorDAOImpl implements IJugadorDAO {
             tx.commit();
 
             System.out.println(jugador.getNom() + " descarta: " + carta.getNom_carta());
+            System.out.println("  -> Cartes a la ma ara: " + (jugador.getMa().size() - 1));
+            System.out.println("  -> Carta enviada a la pila de descartades");
 
         } catch (Exception e) {
             if (tx != null) {
@@ -328,7 +345,9 @@ public class JugadorDAOImpl implements IJugadorDAO {
             session.merge(partida);
             tx.commit();
 
-            System.out.println(jugador.getNom() + " roba: " + carta.getNom_carta());
+            System.out.println(jugador.getNom() + " roba: " + carta.getNom_carta() + " (" + carta.getColl() + ")");
+            System.out.println("  -> Cartes a la ma ara: " + jugador.getMa().size());
+            System.out.println("  -> Cartes restants a la pila: " + partida.getPilaRobar().size());
 
         } catch (Exception e) {
             if (tx != null) {
@@ -423,8 +442,8 @@ public class JugadorDAOImpl implements IJugadorDAO {
                 if (seguent.getVidaActual() > 0) {
                     partida.setJugadorActual(seguent);
                     session.merge(partida);
-                    System.out.println("\nTorn de " + jugador.getNom() + " finalitzat");
-                    System.out.println("Ara es el torn de: " + seguent.getNom());
+                    System.out.println("\n>>> Torn de " + jugador.getNom() + " finalitzat <<<");
+                    System.out.println(">>> Ara es el torn de: " + seguent.getNom() + " (Vida: " + seguent.getVidaActual() + "/" + seguent.getVidaMaxima() + ") <<<");
                     break;
                 }
 
@@ -487,6 +506,7 @@ public class JugadorDAOImpl implements IJugadorDAO {
 
                 System.out.println(jugador.getNom() + " equipa arma: " + arma.getNom_carta() +
                                  " (Distancia: " + arma.getDistanciaArma() + ")");
+                System.out.println("  -> Ara pot atacar a distancia: " + arma.getDistanciaArma());
 
             // Si es un equipament
             } else if (carta instanceof CartaEquipament) {
@@ -524,6 +544,8 @@ public class JugadorDAOImpl implements IJugadorDAO {
                 session.merge(jugador);
 
                 System.out.println(jugador.getNom() + " equipa: " + equipament.getNom_carta());
+                System.out.println("  -> Modificador distancia ofensiva: " + jugador.getModificadorDistanciaOff());
+                System.out.println("  -> Modificador distancia defensiva: " + jugador.getModificadorDistanciaDef());
             } else {
                 System.out.println("Aquesta carta no es pot equipar!");
                 tx.rollback();
@@ -613,7 +635,9 @@ public class JugadorDAOImpl implements IJugadorDAO {
             // Comprovar si pot atacar
             boolean potAtacar = distancia <= abastArma;
 
-            System.out.println("Distancia: " + distancia + " | Abast arma: " + abastArma);
+            System.out.println("  -> Distancia real: " + distancia);
+            System.out.println("  -> Abast arma atacant: " + abastArma);
+            System.out.println("  -> Pot atacar: " + (potAtacar ? "SI" : "NO"));
 
             return potAtacar;
 

@@ -36,18 +36,37 @@ public class PartidaDAOImpl implements IPartidaDAO {
             } else {
                 System.out.println("=== Jugadors de la Partida " + idPartida + " ===");
                 for (Jugador jugador : jugadors) {
-                    System.out.print("- " + jugador.getNom() + " [ID: " + jugador.getId() + "]");
-                    System.out.print(" | Vida: " + jugador.getVidaActual() + "/" + jugador.getVidaMaxima());
+                    System.out.println("\n- " + jugador.getNom() + " [ID: " + jugador.getId() + "]");
+                    System.out.println("  Vida: " + jugador.getVidaActual() + "/" + jugador.getVidaMaxima());
+                    System.out.println("  Rol: " + jugador.getRol().getObjectiu());
 
-                    if (jugador.getRol().getObjectiu().equals("Sheriff") || jugador.getVidaActual() <= 0) {
-                        System.out.print(" | Rol: " + jugador.getRol().getObjectiu());
+                    // Mostrar arma
+                    if (jugador.getArmaEquipada() != null) {
+                        System.out.println("  Arma: " + jugador.getArmaEquipada().getNom_carta() +
+                                         " (Dist: " + jugador.getArmaEquipada().getDistanciaArma() + ")");
+                    } else {
+                        System.out.println("  Arma: Cap (Dist: 1)");
                     }
+
+                    // Mostrar equipaments
+                    if (!jugador.getEquipaments().isEmpty()) {
+                        System.out.print("  Equipaments: ");
+                        for (int i = 0; i < jugador.getEquipaments().size(); i++) {
+                            if (i > 0) System.out.print(", ");
+                            System.out.print(jugador.getEquipaments().get(i).getNom_carta());
+                        }
+                        System.out.println();
+                    } else {
+                        System.out.println("  Equipaments: Cap");
+                    }
+
+                    // Mostrar modificadors
+                    System.out.println("  Modificador ofensiu: " + jugador.getModificadorDistanciaOff());
+                    System.out.println("  Modificador defensiu: " + jugador.getModificadorDistanciaDef());
 
                     if (jugador.getVidaActual() <= 0) {
-                        System.out.print(" [ELIMINAT]");
+                        System.out.println("  [ELIMINAT]");
                     }
-
-                    System.out.println();
                 }
             }
 
@@ -74,11 +93,8 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 return;
             }
 
-            System.out.println("========================================");
-            System.out.println("    ESTAT DE LA PARTIDA " + idPartida);
-            System.out.println("========================================");
+            System.out.println("\n=== ESTAT DE LA PARTIDA " + idPartida + " ===");
             System.out.println("Estat: " + partida.getEstat());
-            System.out.println("Data inici: " + partida.getDataInici());
             System.out.println();
 
             List<Jugador> jugadors = partida.getJugadors();
@@ -89,31 +105,30 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 System.out.println("--- JUGADORS VIUS ---");
                 for (Jugador jugador : jugadors) {
                     if (jugador.getVidaActual() > 0) {
-                        System.out.println("\n>> " + jugador.getNom());
-                        System.out.println("   Vida: " + jugador.getVidaActual() + "/" + jugador.getVidaMaxima());
-
-                        if (jugador.getRol().getObjectiu().equals("Sheriff") || jugador.getVidaActual() <= 0) {
-                            System.out.println("   Rol: " + jugador.getRol().getObjectiu());
-                        } else {
-                            System.out.println("   Rol: [OCULT]");
-                        }
+                        System.out.println("\n- " + jugador.getNom() + " [ID: " + jugador.getId() + "]");
+                        System.out.println("  Vida: " + jugador.getVidaActual() + "/" + jugador.getVidaMaxima());
+                        System.out.println("  Rol: " + jugador.getRol().getObjectiu());
 
                         if (jugador.getArmaEquipada() != null) {
-                            System.out.println("   Arma: " + jugador.getArmaEquipada().getNom_carta() +
-                                             " (Distancia: " + jugador.getArmaEquipada().getDistanciaArma() + ")");
+                            System.out.println("  Arma: " + jugador.getArmaEquipada().getNom_carta() +
+                                             " (Dist: " + jugador.getArmaEquipada().getDistanciaArma() + ")");
                         } else {
-                            System.out.println("   Arma: Cap");
+                            System.out.println("  Arma: Cap (Dist: 1)");
                         }
 
-                        List<CartaEquipament> equipaments = jugador.getEquipaments();
-                        if (!equipaments.isEmpty()) {
-                            System.out.println("   Equipaments:");
-                            for (CartaEquipament eq : equipaments) {
-                                System.out.println("      - " + eq.getNom_carta() + " (" + eq.getTipus() + ")");
+                        if (!jugador.getEquipaments().isEmpty()) {
+                            System.out.print("  Equipaments: ");
+                            for (int i = 0; i < jugador.getEquipaments().size(); i++) {
+                                if (i > 0) System.out.print(", ");
+                                System.out.print(jugador.getEquipaments().get(i).getNom_carta());
                             }
+                            System.out.println();
                         } else {
-                            System.out.println("   Equipaments: Cap");
+                            System.out.println("  Equipaments: Cap");
                         }
+
+                        System.out.println("  Modificador ofensiu: " + jugador.getModificadorDistanciaOff());
+                        System.out.println("  Modificador defensiu: " + jugador.getModificadorDistanciaDef());
                     }
                 }
 
@@ -122,7 +137,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 for (Jugador jugador : jugadors) {
                     if (jugador.getVidaActual() <= 0) {
                         eliminats = true;
-                        System.out.println(">> " + jugador.getNom() + " - Rol: " + jugador.getRol().getObjectiu() + " [ELIMINAT]");
+                        System.out.println("- " + jugador.getNom() + " (Rol: " + jugador.getRol().getObjectiu() + ") [ELIMINAT]");
                     }
                 }
                 if (!eliminats) {
@@ -130,7 +145,6 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 }
             }
 
-            System.out.println("\n========================================");
 
             tx.commit();
         } catch (Exception e) {
@@ -349,34 +363,26 @@ public class PartidaDAOImpl implements IPartidaDAO {
             EstatVictoria resultat = EstatVictoria.EN_CURS;
 
             if (!sheriffViu && forajidosVius > 0) {
-                System.out.println("===========================================");
-                System.out.println("    ELS FORAJIDOS HAN GUANYAT!");
-                System.out.println("    El Sheriff ha mort");
-                System.out.println("===========================================");
+                System.out.println("\n=== ELS FORAJIDOS HAN GUANYAT! ===");
+                System.out.println("El Sheriff ha mort");
                 partidaActualizada.setEstat("Finalitzada - Victoria Forajidos");
                 partidaActualizada.setActiu(false);
                 resultat = EstatVictoria.VICTORIA_FORAJIDOS;
             } else if (!sheriffViu && forajidosVius == 0 && renegadosVius > 0) {
-                System.out.println("===========================================");
-                System.out.println("    EL RENEGAT HA GUANYAT!");
-                System.out.println("    El Sheriff ha mort i no queden Forajidos");
-                System.out.println("===========================================");
+                System.out.println("\n=== EL RENEGAT HA GUANYAT! ===");
+                System.out.println("El Sheriff ha mort i no queden Forajidos");
                 partidaActualizada.setEstat("Finalitzada - Victoria Renegat");
                 partidaActualizada.setActiu(false);
                 resultat = EstatVictoria.VICTORIA_RENEGAT;
             } else if (sheriffViu && forajidosVius == 0 && renegadosVius == 0) {
-                System.out.println("===========================================");
-                System.out.println("    EL SHERIFF HA GUANYAT!");
-                System.out.println("    Tots els Forajidos i Renegats han mort");
-                System.out.println("===========================================");
+                System.out.println("\n=== EL SHERIFF HA GUANYAT! ===");
+                System.out.println("Tots els Forajidos i Renegats han mort");
                 partidaActualizada.setEstat("Finalitzada - Victoria Sheriff");
                 partidaActualizada.setActiu(false);
                 resultat = EstatVictoria.VICTORIA_SHERIFF;
             } else if (sheriffViu && forajidosVius == 0 && renegadosVius == 1) {
-                System.out.println("===========================================");
-                System.out.println("    EL RENEGAT HA GUANYAT!");
-                System.out.println("    Nomes queden el Sheriff i el Renegat");
-                System.out.println("===========================================");
+                System.out.println("\n=== EL RENEGAT HA GUANYAT! ===");
+                System.out.println("Nomes queden el Sheriff i el Renegat");
                 partidaActualizada.setEstat("Finalitzada - Victoria Renegat");
                 partidaActualizada.setActiu(false);
                 resultat = EstatVictoria.VICTORIA_RENEGAT;
@@ -417,7 +423,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 return null;
             }
 
-            // Treure la primera carta de la pila de robar
+            // Treure la primera carta de la pila de robar i obtindre el seu coll
             Carta carta = pilaRobar.get(0);
             TipusColl coll = carta.getColl();
 
@@ -451,13 +457,13 @@ public class PartidaDAOImpl implements IPartidaDAO {
 
             Jugador jugadorActual = partida.getJugadorActual();
 
-            // Inicialitzar les col·leccions per evitar lazy loading
+            // Inicialitzar les col·leccions per evitar lazy loading (em dona aquest error si no faig això) fuck hibernate
             // Accedim a cada element per forçar la càrrega
             for (Carta c : jugadorActual.getMa()) {
-                c.getId(); // Accedir a alguna propietat
+                c.getId();
             }
             for (CartaEquipament eq : jugadorActual.getEquipaments()) {
-                eq.getId(); // Accedir a alguna propietat
+                eq.getId();
             }
 
             return jugadorActual;
