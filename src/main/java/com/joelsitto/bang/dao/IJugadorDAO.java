@@ -1,8 +1,6 @@
 package com.joelsitto.bang.dao;
 
-import com.joelsitto.bang.model.Carta;
 import org.hibernate.SessionFactory;
-import java.util.List;
 
 /**
  * Interficie per gestionar les operacions de Jugador
@@ -12,12 +10,12 @@ public interface IJugadorDAO {
     /**
      * Mostra les cartes de la ma d'un jugador
      */
-    List<Carta> mostrarMaJugador(SessionFactory sessionFactory, int idJugador);
+    void mostrarMaJugador(SessionFactory sessionFactory, int idJugador);
 
     /**
      * Executa un atac BANG
      */
-    boolean usarBANG(SessionFactory sessionFactory, int idPartida, int idJugadorAtacant, int idJugadorObjectiu);
+    void usarBANG(SessionFactory sessionFactory, int idPartida, int idJugadorAtacant, int idJugadorObjectiu);
 
     /**
      * Descarta una carta

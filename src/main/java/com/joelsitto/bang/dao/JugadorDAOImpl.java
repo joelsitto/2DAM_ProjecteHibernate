@@ -5,181 +5,208 @@ import com.joelsitto.bang.model.enums.*;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
-import org.hibernate.query.Query;
 
 import java.util.*;
 
 public class JugadorDAOImpl implements IJugadorDAO {
 
     @Override
-    public List<Carta> mostrarMaJugador(SessionFactory sessionFactory, int idJugador) {
-        List<Carta> cartes = new ArrayList<>();
-
+    public void mostrarMaJugador(SessionFactory sessionFactory, int idJugador) {
         try (Session session = sessionFactory.openSession()) {
-            String hql = "FROM Carta c WHERE c.jugadorMa.id = :idJugador";
-            Query<Carta> query = session.createQuery(hql, Carta.class);
-            query.setParameter("idJugador", idJugador);
-            cartes = query.getResultList();
-
+            // Obtenir el jugador
             Jugador jugador = session.get(Jugador.class, idJugador);
 
-            if (cartes.isEmpty()) {
+            if (jugador == null) {
+                System.out.println("No s'ha trobat el jugador amb id: " + idJugador);
+                return;
+            }
+
+            // Obtenir les cartes de la ma del jugador directament
+            List<Carta> cartesMa = jugador.getMa();
+
+            // Mostrar les cartes
+            System.out.println("\n=== MA DE " + jugador.getNom() + " ===");
+
+            if (cartesMa.isEmpty()) {
                 System.out.println("La ma esta buida!");
             } else {
-                System.out.println("\n=== MA DE " + jugador.getNom() + " ===");
-                for (int i = 0; i < cartes.size(); i++) {
-                    Carta c = cartes.get(i);
-                    System.out.println((i + 1) + ". " + c.getNom_carta());
+                for (int i = 0; i < cartesMa.size(); i++) {
+                    Carta carta = cartesMa.get(i);
+                    System.out.println((i + 1) + ". " + carta.getNom_carta() +
+                                     " (" + carta.getColl() + ") [ID: " + carta.getId() + "]");
                 }
+                System.out.println("Total: " + cartesMa.size() + " cartes");
             }
-            System.out.println("Total: " + cartes.size() + " cartes");
 
         } catch (Exception e) {
             e.printStackTrace();
+            throw e;
         }
-
-        return cartes;
     }
 
     @Override
-    public boolean usarBANG(SessionFactory sessionFactory, int idPartida, int idJugadorAtacant, int idJugadorObjectiu) {
+    public void usarBANG(SessionFactory sessionFactory, int idPartida, int idJugadorAtacant, int idJugadorObjectiu) {
         Transaction tx = null;
-        boolean success = false;
-
         try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
+            // Obtenir la partida i els jugadors
+            Partida partida = session.get(Partida.class, idPartida);
             Jugador atacant = session.get(Jugador.class, idJugadorAtacant);
             Jugador objectiu = session.get(Jugador.class, idJugadorObjectiu);
 
+            if (partida == null || atacant == null || objectiu == null) {
+                System.out.println("No s'ha trobat la partida o els jugadors");
+                tx.rollback();
+                return;
+            }
+
             System.out.println("\n" + atacant.getNom() + " ataca a " + objectiu.getNom());
 
-            // Comprovar que te carta BANG
-            String hql = "FROM CartaUs c WHERE c.jugadorMa.id = :idJugador AND c.tipusUs = :tipus";
-            List<CartaUs> bangs = session.createQuery(hql, CartaUs.class)
-                    .setParameter("idJugador", idJugadorAtacant)
-                    .setParameter("tipus", TipusUs.BANG)
-                    .getResultList();
+            // Comprovar que te carta BANG a la ma
+            CartaUs cartaBang = null;
+            for (Carta carta : atacant.getMa()) {
+                if (carta instanceof CartaUs) {
+                    CartaUs cartaUs = (CartaUs) carta;
+                    if (cartaUs.getTipusUs() == TipusUs.BANG) {
+                        cartaBang = cartaUs;
+                        break;
+                    }
+                }
+            }
 
-            if (bangs.isEmpty()) {
-                System.out.println("No te cap carta BANG!");
+            if (cartaBang == null) {
+                System.out.println(atacant.getNom() + " no te cap carta BANG!");
                 tx.rollback();
-                return false;
+                return;
             }
 
             // Verificar distancia
             if (!comprovarDistanciaAtac(sessionFactory, idJugadorAtacant, idJugadorObjectiu)) {
-                System.out.println("Esta massa lluny!");
+                System.out.println(objectiu.getNom() + " esta massa lluny!");
                 tx.rollback();
-                return false;
+                return;
             }
 
-            // Descartar BANG
-            CartaUs bang = bangs.get(0);
-            bang.setJugadorMa(null);
-            session.merge(bang);
-            System.out.println("Descarta BANG!");
+            // Descartar la carta BANG a la pila de descartades
+            cartaBang.setJugadorMa(null);
+            atacant.getMa().remove(cartaBang);
+            partida.getPilaDescartades().add(cartaBang);
+            session.merge(cartaBang);
+            session.merge(atacant);
+            System.out.println(atacant.getNom() + " descarta BANG!");
 
-            tx.commit();
+            // Comprovar si te BARRIL
+            boolean teBarril = false;
+            for (CartaEquipament eq : objectiu.getEquipaments()) {
+                if (eq.getTipus() == TipusEquipament.BARRIL) {
+                    teBarril = true;
+                    break;
+                }
+            }
 
-            // Comprovar BARRIL
-            String hqlBarril = "FROM CartaEquipament c WHERE c.jugadorEquipament.id = :idJugador AND c.tipus = :tipus";
-            Session session2 = sessionFactory.openSession();
-            List<CartaEquipament> barrils = session2.createQuery(hqlBarril, CartaEquipament.class)
-                    .setParameter("idJugador", idJugadorObjectiu)
-                    .setParameter("tipus", TipusEquipament.BARRIL)
-                    .getResultList();
-            session2.close();
-
-            if (!barrils.isEmpty()) {
+            if (teBarril) {
                 System.out.println(objectiu.getNom() + " te un BARRIL!");
 
                 // Usar mostrarCarta per veure el coll
                 IPartidaDAO partidaDAO = new PartidaDAOImpl();
-                String coll = partidaDAO.mostrarCarta(sessionFactory, idPartida);
+                TipusColl coll = partidaDAO.mostrarCarta(sessionFactory, idPartida);
 
                 // Si es Cors, el barril funciona
-                if (coll.contains("Cors")) {
+                if (coll == TipusColl.CORS) {
                     System.out.println("El BARRIL funciona! (ha sortit " + coll + ")");
-                    return true;
+                    System.out.println(objectiu.getNom() + " esquiva l'atac!");
+                    session.merge(partida);
+                    tx.commit();
+                    return;
                 }
                 System.out.println("El BARRIL falla! (ha sortit " + coll + ")");
             }
 
-            // Comprovar FALLASTE
-            tx = null;
-            try (Session session3 = sessionFactory.openSession()) {
-                tx = session3.beginTransaction();
-
-                String hqlFallaste = "FROM CartaUs c WHERE c.jugadorMa.id = :idJugador AND c.tipusUs = :tipus";
-                List<CartaUs> fallastes = session3.createQuery(hqlFallaste, CartaUs.class)
-                        .setParameter("idJugador", idJugadorObjectiu)
-                        .setParameter("tipus", TipusUs.FALLASTE)
-                        .getResultList();
-
-                if (!fallastes.isEmpty()) {
-                    System.out.println(objectiu.getNom() + " juga FALLASTE!");
-                    CartaUs fallaste = fallastes.get(0);
-                    fallaste.setJugadorMa(null);
-                    session3.merge(fallaste);
-                    tx.commit();
-                    return true;
+            // Comprovar si te FALLASTE
+            CartaUs cartaFallaste = null;
+            for (Carta carta : objectiu.getMa()) {
+                if (carta instanceof CartaUs) {
+                    CartaUs cartaUs = (CartaUs) carta;
+                    if (cartaUs.getTipusUs() == TipusUs.FALLASTE) {
+                        cartaFallaste = cartaUs;
+                        break;
+                    }
                 }
-
-                // L'atac impacta
-                Jugador obj = session3.get(Jugador.class, idJugadorObjectiu);
-                System.out.println(obj.getNom() + " rep 1 bala!");
-                obj.setVidaActual(obj.getVidaActual() - 1);
-                session3.merge(obj);
-
-                tx.commit();
-                success = true;
-
-            } catch (Exception e) {
-                if (tx != null) tx.rollback();
-                throw e;
             }
 
-            // Comprovar eliminacio
+            if (cartaFallaste != null) {
+                System.out.println(objectiu.getNom() + " juga FALLASTE!");
+                cartaFallaste.setJugadorMa(null);
+                objectiu.getMa().remove(cartaFallaste);
+                partida.getPilaDescartades().add(cartaFallaste);
+                session.merge(cartaFallaste);
+                session.merge(objectiu);
+                session.merge(partida);
+                tx.commit();
+                System.out.println(objectiu.getNom() + " esquiva l'atac!");
+                return;
+            }
+
+            // L'atac impacta
+            System.out.println(objectiu.getNom() + " rep 1 bala!");
+            objectiu.setVidaActual(objectiu.getVidaActual() - 1);
+            session.merge(objectiu);
+            session.merge(partida);
+            tx.commit();
+
+            // Comprovar si ha estat eliminat
             comprovarEliminacio(sessionFactory, idPartida, idJugadorObjectiu);
 
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null) {
+                tx.rollback();
+            }
             e.printStackTrace();
             throw e;
         }
-
-        return success;
     }
 
     @Override
     public void descartarCarta(SessionFactory sessionFactory, int idPartida, int idJugador, int idCarta) {
         Transaction tx = null;
-
         try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
+            // Obtenir la partida, el jugador i la carta
+            Partida partida = session.get(Partida.class, idPartida);
+            Jugador jugador = session.get(Jugador.class, idJugador);
             Carta carta = session.get(Carta.class, idCarta);
 
-            if (carta != null && carta.getJugadorMa() != null &&
-                carta.getJugadorMa().getId() == idJugador) {
-
-                carta.setJugadorMa(null);
-                session.merge(carta);
-
-                Partida partida = session.get(Partida.class, idPartida);
-                if (partida != null) {
-                    partida.getPilaDescartades().add(carta);
-                    session.merge(partida);
-                }
-
-                System.out.println("Carta descartada: " + carta.getNom_carta());
+            if (partida == null || jugador == null || carta == null) {
+                System.out.println("No s'ha trobat la partida, el jugador o la carta");
+                tx.rollback();
+                return;
             }
 
+            // Comprovar que la carta estigui a la ma del jugador
+            if (carta.getJugadorMa() == null || carta.getJugadorMa().getId() != idJugador) {
+                System.out.println("Aquesta carta no esta a la ma del jugador!");
+                tx.rollback();
+                return;
+            }
+
+            // Treure la carta de la ma i afegir-la a la pila de descartades
+            carta.setJugadorMa(null);
+            jugador.getMa().remove(carta);
+            partida.getPilaDescartades().add(carta);
+
+            session.merge(carta);
+            session.merge(jugador);
+            session.merge(partida);
             tx.commit();
 
+            System.out.println(jugador.getNom() + " descarta: " + carta.getNom_carta());
+
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null) {
+                tx.rollback();
+            }
             e.printStackTrace();
             throw e;
         }
@@ -188,47 +215,66 @@ public class JugadorDAOImpl implements IJugadorDAO {
     @Override
     public void comprovarEliminacio(SessionFactory sessionFactory, int idPartida, int idJugador) {
         Transaction tx = null;
-
         try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
+            // Obtenir la partida i el jugador
+            Partida partida = session.get(Partida.class, idPartida);
             Jugador jugador = session.get(Jugador.class, idJugador);
 
+            if (partida == null || jugador == null) {
+                System.out.println("No s'ha trobat la partida o el jugador");
+                tx.rollback();
+                return;
+            }
+
+            // Comprovar si el jugador esta eliminat
             if (jugador.getVidaActual() <= 0) {
                 System.out.println("\n" + jugador.getNom() + " ha estat ELIMINAT!");
+                System.out.println("Rol: " + jugador.getRol().getObjectiu());
 
-                // Descartar cartes de la ma
-                String hql = "FROM Carta c WHERE c.jugadorMa.id = :idJugador";
-                List<Carta> cartes = session.createQuery(hql, Carta.class)
-                        .setParameter("idJugador", idJugador)
-                        .getResultList();
-
-                for (Carta c : cartes) {
-                    c.setJugadorMa(null);
-                    session.merge(c);
+                // Descartar totes les cartes de la ma
+                List<Carta> cartesMa = new ArrayList<>(jugador.getMa());
+                for (Carta carta : cartesMa) {
+                    carta.setJugadorMa(null);
+                    jugador.getMa().remove(carta);
+                    partida.getPilaDescartades().add(carta);
+                    session.merge(carta);
                 }
 
-                // Descartar equipament
-                String hqlEquip = "FROM CartaEquipament c WHERE c.jugadorEquipament.id = :idJugador";
-                List<CartaEquipament> equipaments = session.createQuery(hqlEquip, CartaEquipament.class)
-                        .setParameter("idJugador", idJugador)
-                        .getResultList();
-
+                // Descartar tots els equipaments
+                List<CartaEquipament> equipaments = new ArrayList<>(jugador.getEquipaments());
                 for (CartaEquipament eq : equipaments) {
                     eq.setJugadorEquipament(null);
+                    jugador.getEquipaments().remove(eq);
+                    partida.getPilaDescartades().add(eq);
                     session.merge(eq);
                 }
 
+                // Descartar l'arma equipada
                 if (jugador.getArmaEquipada() != null) {
+                    CartaArma arma = jugador.getArmaEquipada();
                     jugador.setArmaEquipada(null);
-                    session.merge(jugador);
+                    partida.getPilaDescartades().add(arma);
+                    session.merge(arma);
                 }
+
+                session.merge(jugador);
+                session.merge(partida);
             }
 
             tx.commit();
 
+            // Comprovar si la partida ha acabat
+            if (jugador.getVidaActual() <= 0) {
+                IPartidaDAO partidaDAO = new PartidaDAOImpl();
+                partidaDAO.comprovarVictoria(sessionFactory, partida);
+            }
+
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null) {
+                tx.rollback();
+            }
             e.printStackTrace();
             throw e;
         }
@@ -237,40 +283,57 @@ public class JugadorDAOImpl implements IJugadorDAO {
     @Override
     public void robarCarta(SessionFactory sessionFactory, int idPartida, int idJugador) {
         Transaction tx = null;
-
         try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
+            // Obtenir la partida i el jugador
             Partida partida = session.get(Partida.class, idPartida);
             Jugador jugador = session.get(Jugador.class, idJugador);
 
-            if (partida == null) {
-                System.out.println("Partida no trobada!");
+            if (partida == null || jugador == null) {
+                System.out.println("No s'ha trobat la partida o el jugador");
                 tx.rollback();
                 return;
             }
 
+            // Comprovar si la pila de robar esta buida
             if (partida.getPilaRobar().isEmpty()) {
-                System.out.println("Barallant cartes...");
-                List<Carta> descartades = new ArrayList<>(partida.getPilaDescartades());
-                Collections.shuffle(descartades);
-                partida.getPilaRobar().addAll(descartades);
+                System.out.println("La pila de robar esta buida. Barallant cartes descartades...");
+
+                // Agafar totes les cartes descartades i barrejar-les
+                List<Carta> cartesDescartades = new ArrayList<>(partida.getPilaDescartades());
+                Collections.shuffle(cartesDescartades);
+
+                // Moure-les a la pila de robar
+                partida.getPilaRobar().addAll(cartesDescartades);
                 partida.getPilaDescartades().clear();
-            }
 
-            if (!partida.getPilaRobar().isEmpty()) {
-                Carta carta = partida.getPilaRobar().remove(0);
-                carta.setJugadorMa(jugador);
-                session.merge(carta);
                 session.merge(partida);
-
-                System.out.println(jugador.getNom() + " roba: " + carta.getNom_carta());
             }
 
+            // Comprovar que hi ha cartes per robar, això probablement no passi però per si de cas
+            if (partida.getPilaRobar().isEmpty()) {
+                System.out.println("No hi ha cartes per robar!");
+                tx.rollback();
+                return;
+            }
+
+            // Robar la primera carta de la pila
+            Carta carta = partida.getPilaRobar().remove(0);
+            carta.setJugadorMa(jugador);
+            jugador.getMa().add(carta);
+
+            session.merge(carta);
+            session.merge(jugador);
+            session.merge(partida);
             tx.commit();
 
+            System.out.println(jugador.getNom() + " roba: " + carta.getNom_carta());
+
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null) {
+                tx.rollback();
+            }
             e.printStackTrace();
             throw e;
         }
@@ -279,36 +342,102 @@ public class JugadorDAOImpl implements IJugadorDAO {
     @Override
     public void passarTorn(SessionFactory sessionFactory, int idPartida, int idJugador) {
         Transaction tx = null;
-
         try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
+            // Obtenir la partida i el jugador
+            Partida partida = session.get(Partida.class, idPartida);
             Jugador jugador = session.get(Jugador.class, idJugador);
 
-            String hql = "FROM Carta c WHERE c.jugadorMa.id = :idJugador";
-            List<Carta> cartes = session.createQuery(hql, Carta.class)
-                    .setParameter("idJugador", idJugador)
-                    .getResultList();
-
-            int limit = jugador.getVidaActual();
-
-            if (cartes.size() > limit) {
-                System.out.println(jugador.getNom() + " te massa cartes! Ha de descartar " +
-                                 (cartes.size() - limit));
-
-                Collections.shuffle(cartes);
-                for (int i = 0; i < cartes.size() - limit; i++) {
-                    cartes.get(i).setJugadorMa(null);
-                    session.merge(cartes.get(i));
-                }
+            if (partida == null || jugador == null) {
+                System.out.println("No s'ha trobat la partida o el jugador");
+                tx.rollback();
+                return;
             }
 
-            System.out.println("Torn finalitzat");
+            // Obtenir les cartes de la ma
+            List<Carta> cartesMa = jugador.getMa();
+            int limitCartes = 4;
+
+            // Comprovar si te mes cartes del limit
+            if (cartesMa.size() > limitCartes) {
+                int cartesADescartar = cartesMa.size() - limitCartes;
+                System.out.println("\n" + jugador.getNom() + " te " + cartesMa.size() + " cartes!");
+                System.out.println("Ha de descartar " + cartesADescartar + " carta/es");
+
+                // Mostrar les cartes
+                System.out.println("\n=== CARTES A LA MA ===");
+                for (int i = 0; i < cartesMa.size(); i++) {
+                    Carta carta = cartesMa.get(i);
+                    System.out.println((i + 1) + ". " + carta.getNom_carta() + " (" + carta.getColl() + ")");
+                }
+
+                // Demanar a l'usuari quines cartes vol descartar
+                Scanner scanner = new Scanner(System.in);
+                List<Carta> cartesDescartades = new ArrayList<>();
+
+                for (int i = 0; i < cartesADescartar; i++) {
+                    System.out.print("\nEscull la carta " + (i + 1) + " a descartar (1-" + cartesMa.size() + "): ");
+                    int opcio = scanner.nextInt();
+
+                    if (opcio >= 1 && opcio <= cartesMa.size()) {
+                        Carta cartaDescartada = cartesMa.get(opcio - 1);
+
+                        // Verificar que no s'hagi descartat ja
+                        if (!cartesDescartades.contains(cartaDescartada)) {
+                            cartesDescartades.add(cartaDescartada);
+                            System.out.println("Descartaras: " + cartaDescartada.getNom_carta());
+                        } else {
+                            System.out.println("Aquesta carta ja esta seleccionada! Torna a escollir.");
+                            i--;
+                        }
+                    } else {
+                        System.out.println("Opcio no valida! Torna a escollir.");
+                        i--;
+                    }
+                }
+
+                // Descartar les cartes seleccionades
+                for (Carta carta : cartesDescartades) {
+                    carta.setJugadorMa(null);
+                    jugador.getMa().remove(carta);
+                    partida.getPilaDescartades().add(carta);
+                    session.merge(carta);
+                    System.out.println(jugador.getNom() + " descarta: " + carta.getNom_carta());
+                }
+
+                session.merge(jugador);
+                session.merge(partida);
+            }
+
+            // Passar al següent jugador viu
+            List<Jugador> jugadors = partida.getJugadors();
+            int indexActual = jugadors.indexOf(jugador);
+            int indexSeguent = (indexActual + 1) % jugadors.size();
+
+            // Buscar el següent jugador viu
+            int intents = 0;
+            while (intents < jugadors.size()) {
+                Jugador seguent = jugadors.get(indexSeguent);
+
+                if (seguent.getVidaActual() > 0) {
+                    partida.setJugadorActual(seguent);
+                    session.merge(partida);
+                    System.out.println("\nTorn de " + jugador.getNom() + " finalitzat");
+                    System.out.println("Ara es el torn de: " + seguent.getNom());
+                    break;
+                }
+
+                indexSeguent = (indexSeguent + 1) % jugadors.size();
+                intents++;
+            }
 
             tx.commit();
 
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null) {
+                tx.rollback();
+            }
             e.printStackTrace();
             throw e;
         }
@@ -317,59 +446,74 @@ public class JugadorDAOImpl implements IJugadorDAO {
     @Override
     public void equiparCarta(SessionFactory sessionFactory, int idJugador, int idCarta) {
         Transaction tx = null;
-
         try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
+            // Obtenir el jugador i la carta
             Jugador jugador = session.get(Jugador.class, idJugador);
             Carta carta = session.get(Carta.class, idCarta);
 
-            // Refrescar para obtener el estado actual de la BD
-            session.refresh(carta);
-
-            if (carta.getJugadorMa() == null || carta.getJugadorMa().getId() != idJugador) {
-                System.out.println("El jugador no te aquesta carta!");
+            if (jugador == null || carta == null) {
+                System.out.println("No s'ha trobat el jugador o la carta");
                 tx.rollback();
                 return;
             }
 
+            // Comprovar que la carta estigui a la ma del jugador
+            if (carta.getJugadorMa() == null || carta.getJugadorMa().getId() != idJugador) {
+                System.out.println("El jugador no te aquesta carta a la ma!");
+                tx.rollback();
+                return;
+            }
+
+            // Si es una arma
             if (carta instanceof CartaArma) {
                 CartaArma arma = (CartaArma) carta;
 
-                // Si ya tiene un arma, primero la quitamos completamente
+                // Si ja te una arma equipada, treure-la i no descartar-la (queda a la ma)
                 if (jugador.getArmaEquipada() != null) {
                     CartaArma armaAnterior = jugador.getArmaEquipada();
+                    System.out.println("Desequipa: " + armaAnterior.getNom_carta());
                     jugador.setArmaEquipada(null);
                     session.merge(jugador);
-                    session.flush(); // Forzar el update antes de asignar la nueva
                 }
 
-                // Ahora asignamos la nueva arma
-                jugador.setArmaEquipada(arma);
+                // Equipar la nova arma
                 arma.setJugadorMa(null);
-                session.merge(jugador);
+                jugador.getMa().remove(arma);
+                jugador.setArmaEquipada(arma);
                 session.merge(arma);
+                session.merge(jugador);
 
-                System.out.println(jugador.getNom() + " equipa: " + arma.getNom_carta());
+                System.out.println(jugador.getNom() + " equipa arma: " + arma.getNom_carta() +
+                                 " (Distancia: " + arma.getDistanciaArma() + ")");
 
+            // Si es un equipament
             } else if (carta instanceof CartaEquipament) {
                 CartaEquipament equipament = (CartaEquipament) carta;
 
-                String hql = "FROM CartaEquipament c WHERE c.jugadorEquipament.id = :idJugador AND c.tipus = :tipus";
-                List<CartaEquipament> existents = session.createQuery(hql, CartaEquipament.class)
-                        .setParameter("idJugador", idJugador)
-                        .setParameter("tipus", equipament.getTipus())
-                        .getResultList();
+                // Comprovar que no tingui ja un equipament del mateix tipus
+                boolean teEquipamentDelTipus = false;
+                for (CartaEquipament eq : jugador.getEquipaments()) {
+                    if (eq.getTipus() == equipament.getTipus()) {
+                        teEquipamentDelTipus = true;
+                        break;
+                    }
+                }
 
-                if (!existents.isEmpty()) {
+                if (teEquipamentDelTipus) {
                     System.out.println("Ja te un equipament d'aquest tipus!");
                     tx.rollback();
                     return;
                 }
 
-                equipament.setJugadorEquipament(jugador);
+                // Equipar l'equipament
                 equipament.setJugadorMa(null);
+                jugador.getMa().remove(equipament);
+                equipament.setJugadorEquipament(jugador);
+                jugador.getEquipaments().add(equipament);
 
+                // Actualitzar modificadors de distancia segons el tipus
                 if (equipament.getTipus() == TipusEquipament.MIRA_TELESCOPICA) {
                     jugador.setModificadorDistanciaOff(jugador.getModificadorDistanciaOff() - 1);
                 } else if (equipament.getTipus() == TipusEquipament.CAVALL) {
@@ -380,12 +524,18 @@ public class JugadorDAOImpl implements IJugadorDAO {
                 session.merge(jugador);
 
                 System.out.println(jugador.getNom() + " equipa: " + equipament.getNom_carta());
+            } else {
+                System.out.println("Aquesta carta no es pot equipar!");
+                tx.rollback();
+                return;
             }
 
             tx.commit();
 
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null) {
+                tx.rollback();
+            }
             e.printStackTrace();
             throw e;
         }
@@ -393,56 +543,84 @@ public class JugadorDAOImpl implements IJugadorDAO {
 
     @Override
     public int calcularDistancia(SessionFactory sessionFactory, int idJugadorOrigen, int idJugadorDesti) {
-        int distanciaFinal = 0;
-
         try (Session session = sessionFactory.openSession()) {
+            // Obtenir els jugadors
             Jugador origen = session.get(Jugador.class, idJugadorOrigen);
             Jugador desti = session.get(Jugador.class, idJugadorDesti);
 
-            String hql = "FROM DistanciesJugadors d WHERE d.jugador1.id = :id1 AND d.jugador2.id = :id2";
-            DistanciesJugadors dist = session.createQuery(hql, DistanciesJugadors.class)
+            if (origen == null || desti == null) {
+                System.out.println("No s'han trobat els jugadors");
+                return 0;
+            }
+
+            // Obtenir la distancia base de la BD
+            // Provar primer amb origen com jugador1
+            List<DistanciesJugadors> distancies = session.createQuery(
+                    "FROM DistanciesJugadors d WHERE " +
+                    "(d.jugador1.id = :id1 AND d.jugador2.id = :id2) OR " +
+                    "(d.jugador1.id = :id2 AND d.jugador2.id = :id1)",
+                    DistanciesJugadors.class)
                     .setParameter("id1", idJugadorOrigen)
                     .setParameter("id2", idJugadorDesti)
-                    .uniqueResult();
+                    .getResultList();
 
-            if (dist != null) {
-                distanciaFinal = dist.getDistancia();
-                distanciaFinal += origen.getModificadorDistanciaOff();
-                distanciaFinal += desti.getModificadorDistanciaDef();
-
-                if (distanciaFinal < 1) distanciaFinal = 1;
+            if (distancies.isEmpty()) {
+                System.out.println("No s'ha trobat la distancia entre els jugadors");
+                return 0;
             }
+
+            // Obtenir la distancia base
+            int distanciaBase = distancies.get(0).getDistancia();
+
+            // Aplicar modificadors
+            int distanciaFinal = distanciaBase;
+            distanciaFinal += origen.getModificadorDistanciaOff(); // Mira telescopica (resta)
+            distanciaFinal += desti.getModificadorDistanciaDef();   // Mustang (suma)
+
+            // La distancia minima es 1
+            if (distanciaFinal < 1) {
+                distanciaFinal = 1;
+            }
+
+            return distanciaFinal;
 
         } catch (Exception e) {
             e.printStackTrace();
+            throw e;
         }
-
-        return distanciaFinal;
     }
 
     @Override
     public boolean comprovarDistanciaAtac(SessionFactory sessionFactory, int idJugadorAtacant, int idJugadorObjectiu) {
-        boolean potAtacar = false;
-
         try (Session session = sessionFactory.openSession()) {
+            // Obtenir l'atacant
             Jugador atacant = session.get(Jugador.class, idJugadorAtacant);
 
+            if (atacant == null) {
+                System.out.println("No s'ha trobat l'atacant");
+                return false;
+            }
+
+            // Obtenir l'abast de l'arma (per defecte 1 si no te arma)
             int abastArma = 1;
             if (atacant.getArmaEquipada() != null) {
                 abastArma = atacant.getArmaEquipada().getDistanciaArma();
             }
 
+            // Calcular la distancia real
             int distancia = calcularDistancia(sessionFactory, idJugadorAtacant, idJugadorObjectiu);
 
-            potAtacar = distancia <= abastArma;
+            // Comprovar si pot atacar
+            boolean potAtacar = distancia <= abastArma;
 
             System.out.println("Distancia: " + distancia + " | Abast arma: " + abastArma);
 
+            return potAtacar;
+
         } catch (Exception e) {
             e.printStackTrace();
+            throw e;
         }
-
-        return potAtacar;
     }
 }
 

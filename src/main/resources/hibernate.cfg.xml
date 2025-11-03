@@ -14,7 +14,7 @@
 
         <!-- Altres configuracions-->
         <property name="hibernate.hbm2ddl.auto">update</property> <!-- create: torna a crear la BBDD / update: només l'actualitza' -->
-        <property name="show_sql">true</property>
+        <property name="show_sql">false</property>
         <property name="hibernate.current_session_context_class">org.hibernate.context.internal.ThreadLocalSessionContext</property>
 
 

@@ -22,6 +22,10 @@ public class Partida {
     @Column(name = "actiu", nullable = false)
     private boolean actiu;
 
+    @ManyToOne
+    @JoinColumn(name = "id_jugador_actual")
+    private Jugador jugadorActual;
+
     @ManyToMany
     @JoinTable(name = "partida_jugadors",
             joinColumns = @JoinColumn(name = "id_partida"),
@@ -103,5 +107,13 @@ public class Partida {
 
     public void setPilaDescartades(List<Carta> pilaDescartades) {
         this.pilaDescartades = pilaDescartades;
+    }
+
+    public Jugador getJugadorActual() {
+        return jugadorActual;
+    }
+
+    public void setJugadorActual(Jugador jugadorActual) {
+        this.jugadorActual = jugadorActual;
     }
 }

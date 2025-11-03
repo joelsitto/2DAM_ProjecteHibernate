@@ -1,9 +1,9 @@
 package com.joelsitto.bang.dao;
 
 import com.joelsitto.bang.model.*;
+import com.joelsitto.bang.model.enums.EstatVictoria;
 import com.joelsitto.bang.model.enums.TipusColl;
 import org.hibernate.SessionFactory;
-import java.util.List;
 
 /**
  * Interficie per gestionar les operacions de Partida
@@ -28,11 +28,16 @@ public interface IPartidaDAO {
     /**
      * Comprova si hi ha un guanyador
      */
-    void comprovarVictoria(SessionFactory sessionFactory, Partida partida);
+    EstatVictoria comprovarVictoria(SessionFactory sessionFactory, Partida partida);
 
     /**
      * Mostra una carta del coll (baralla)
      */
     TipusColl mostrarCarta(SessionFactory sessionFactory, int idPartida);
+
+    /**
+     * Obte el jugador que té el torn actual, no està al document però facilita el codi
+     */
+    Jugador obtenirJugadorActual(SessionFactory sessionFactory, int idPartida);
 }
 

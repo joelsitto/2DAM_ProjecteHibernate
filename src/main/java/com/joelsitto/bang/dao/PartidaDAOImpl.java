@@ -1,6 +1,7 @@
 package com.joelsitto.bang.dao;
 
 import com.joelsitto.bang.model.*;
+import com.joelsitto.bang.model.enums.EstatVictoria;
 import com.joelsitto.bang.model.enums.TipusColl;
 import com.joelsitto.bang.model.enums.TipusEquipament;
 import com.joelsitto.bang.model.enums.TipusUs;
@@ -27,14 +28,15 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 return;
             }
 
-            System.out.println("=== Jugadors de la Partida " + idPartida + " ===");
+
             List<Jugador> jugadors = partida.getJugadors();
 
             if (jugadors.isEmpty()) {
                 System.out.println("No hi ha jugadors en aquesta partida.");
             } else {
+                System.out.println("=== Jugadors de la Partida " + idPartida + " ===");
                 for (Jugador jugador : jugadors) {
-                    System.out.print("- " + jugador.getNom());
+                    System.out.print("- " + jugador.getNom() + " [ID: " + jugador.getId() + "]");
                     System.out.print(" | Vida: " + jugador.getVidaActual() + "/" + jugador.getVidaMaxima());
 
                     if (jugador.getRol().getObjectiu().equals("Sheriff") || jugador.getVidaActual() <= 0) {
@@ -116,14 +118,14 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 }
 
                 System.out.println("\n--- JUGADORS ELIMINATS ---");
-                boolean hayEliminados = false;
+                boolean eliminats = false;
                 for (Jugador jugador : jugadors) {
                     if (jugador.getVidaActual() <= 0) {
-                        hayEliminados = true;
+                        eliminats = true;
                         System.out.println(">> " + jugador.getNom() + " - Rol: " + jugador.getRol().getObjectiu() + " [ELIMINAT]");
                     }
                 }
-                if (!hayEliminados) {
+                if (!eliminats) {
                     System.out.println("Cap jugador eliminat");
                 }
             }
@@ -145,7 +147,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
         try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
-            // Crear o obtener los roles
+            // Crear o obtenir els rols
             Rol rolSheriff = obtenerOCrearRol(session, "Sheriff");
             Rol rolForajido = obtenerOCrearRol(session, "Forajido");
             Rol rolRenegado = obtenerOCrearRol(session, "Renegado");
@@ -154,7 +156,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
             Partida partida = new Partida("En curs", new Date(), true);
             session.persist(partida);
 
-            // Crear los 4 jugadores con roles aleatorios
+            // Crear els 4 jugadors amb rols aleatoris
             List<Rol> rolesDisponibles = new ArrayList<>();
             rolesDisponibles.add(rolSheriff);
             rolesDisponibles.add(rolForajido);
@@ -172,7 +174,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 partida.getJugadors().add(jugador);
             }
 
-            // Establecer distancias entre jugadores (en circulo)
+            // Establir distàncies entre jugadors (en cercle)
             for (int i = 0; i < jugadores.size(); i++) {
                 for (int j = i + 1; j < jugadores.size(); j++) {
                     int distancia = Math.min(j - i, jugadores.size() - (j - i));
@@ -181,16 +183,16 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 }
             }
 
-            // Crear el mazo de cartas
+            // Crear el mazo de cartes
             List<Carta> mazo = crearMazo(session);
 
-            // Barajar el mazo
+            // Barrejar el mazo
             Collections.shuffle(mazo);
 
-            // Añadir todas las cartas a la pila de robar de la partida
+            // Afegir totes les cartes a la pila de robar de la partida
             partida.getPilaRobar().addAll(mazo);
 
-            // Repartir 4 cartas a cada jugador
+            // Repartir 4 cartes a cada jugador
             int indiceCartaActual = 0;
             for (Jugador jugador : jugadores) {
                 for (int i = 0; i < 4; i++) {
@@ -201,6 +203,14 @@ public class PartidaDAOImpl implements IPartidaDAO {
                         partida.getPilaRobar().remove(carta);
                         indiceCartaActual++;
                     }
+                }
+            }
+
+            // Establir el jugador inicial, farem que comenci el Sheriff per comoditat
+            for (Jugador jugador : jugadores) {
+                if (jugador.getRol().getObjectiu().equals("Sheriff")) {
+                    partida.setJugadorActual(jugador);
+                    break;
                 }
             }
 
@@ -237,7 +247,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
 
         TipusColl[] colls = TipusColl.values();
 
-        // Crear cartas de uso (BANG, FALLASTE, BIRRA)
+        // Crear cartes d'ús (BANG, FALLASTE, BIRRA)
         for (int i = 0; i < 25; i++) {
             TipusColl coll = colls[i % colls.length];
             CartaUs cartaBang = new CartaUs("BANG!", "Ataca a un jugador", coll, TipusUs.BANG);
@@ -259,7 +269,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
             mazo.add(cartaBirra);
         }
 
-        // Crear armas
+        // Crear armes
         String[] nombresArmas = {"Volcanic", "Schofield", "Remington", "Rev Carabine", "Winchester"};
         int[] distanciasArmas = {1, 2, 3, 4, 5};
 
@@ -273,7 +283,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
             }
         }
 
-        // Crear equipamientos
+        // Crear equipaments
         for (int i = 0; i < 3; i++) {
             TipusColl coll = colls[i % colls.length];
             CartaEquipament mustang = new CartaEquipament("Mustang", "Augmenta la distancia defensiva",
@@ -302,7 +312,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
     }
 
     @Override
-    public void comprovarVictoria(SessionFactory sessionFactory, Partida partida) {
+    public EstatVictoria comprovarVictoria(SessionFactory sessionFactory, Partida partida) {
         Transaction tx = null;
         try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
@@ -312,16 +322,15 @@ public class PartidaDAOImpl implements IPartidaDAO {
             if (partidaActualizada == null) {
                 System.out.println("No s'ha trobat la partida");
                 tx.rollback();
-                return;
+                return EstatVictoria.EN_CURS;
             }
 
             List<Jugador> jugadors = partidaActualizada.getJugadors();
 
-            // Contar jugadores vivos por rol
+            // Comptar jugadors vius per rol
             boolean sheriffViu = false;
             int forajidosVius = 0;
             int renegadosVius = 0;
-            int ajudantsVius = 0;
 
             for (Jugador jugador : jugadors) {
                 if (jugador.getVidaActual() > 0) {
@@ -336,7 +345,9 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 }
             }
 
-            // Comprobar condiciones de victoria
+            // Comprovar condicions de victòria
+            EstatVictoria resultat = EstatVictoria.EN_CURS;
+
             if (!sheriffViu && forajidosVius > 0) {
                 System.out.println("===========================================");
                 System.out.println("    ELS FORAJIDOS HAN GUANYAT!");
@@ -344,6 +355,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 System.out.println("===========================================");
                 partidaActualizada.setEstat("Finalitzada - Victoria Forajidos");
                 partidaActualizada.setActiu(false);
+                resultat = EstatVictoria.VICTORIA_FORAJIDOS;
             } else if (!sheriffViu && forajidosVius == 0 && renegadosVius > 0) {
                 System.out.println("===========================================");
                 System.out.println("    EL RENEGAT HA GUANYAT!");
@@ -351,6 +363,7 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 System.out.println("===========================================");
                 partidaActualizada.setEstat("Finalitzada - Victoria Renegat");
                 partidaActualizada.setActiu(false);
+                resultat = EstatVictoria.VICTORIA_RENEGAT;
             } else if (sheriffViu && forajidosVius == 0 && renegadosVius == 0) {
                 System.out.println("===========================================");
                 System.out.println("    EL SHERIFF HA GUANYAT!");
@@ -358,17 +371,21 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 System.out.println("===========================================");
                 partidaActualizada.setEstat("Finalitzada - Victoria Sheriff");
                 partidaActualizada.setActiu(false);
-            } else if (sheriffViu && forajidosVius == 0 && renegadosVius == 1 && ajudantsVius == 0) {
+                resultat = EstatVictoria.VICTORIA_SHERIFF;
+            } else if (sheriffViu && forajidosVius == 0 && renegadosVius == 1) {
                 System.out.println("===========================================");
                 System.out.println("    EL RENEGAT HA GUANYAT!");
                 System.out.println("    Nomes queden el Sheriff i el Renegat");
                 System.out.println("===========================================");
                 partidaActualizada.setEstat("Finalitzada - Victoria Renegat");
                 partidaActualizada.setActiu(false);
+                resultat = EstatVictoria.VICTORIA_RENEGAT;
             }
 
             session.merge(partidaActualizada);
             tx.commit();
+
+            return resultat;
 
         } catch (Exception e) {
             if (tx != null)
@@ -400,11 +417,11 @@ public class PartidaDAOImpl implements IPartidaDAO {
                 return null;
             }
 
-            // Sacar la primera carta de la pila de robar
+            // Treure la primera carta de la pila de robar
             Carta carta = pilaRobar.get(0);
             TipusColl coll = carta.getColl();
 
-            // Mover la carta a la pila de descartadas
+            // Moure la carta a la pila de descartades
             partida.getPilaRobar().remove(carta);
             partida.getPilaDescartades().add(carta);
 
@@ -417,6 +434,35 @@ public class PartidaDAOImpl implements IPartidaDAO {
         } catch (Exception e) {
             if (tx != null)
                 tx.rollback();
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @Override
+    public Jugador obtenirJugadorActual(SessionFactory sessionFactory, int idPartida) {
+        try (Session session = sessionFactory.openSession()) {
+            Partida partida = session.get(Partida.class, idPartida);
+
+            if (partida == null) {
+                System.out.println("No s'ha trobat la partida");
+                return null;
+            }
+
+            Jugador jugadorActual = partida.getJugadorActual();
+
+            // Inicialitzar les col·leccions per evitar lazy loading
+            // Accedim a cada element per forçar la càrrega
+            for (Carta c : jugadorActual.getMa()) {
+                c.getId(); // Accedir a alguna propietat
+            }
+            for (CartaEquipament eq : jugadorActual.getEquipaments()) {
+                eq.getId(); // Accedir a alguna propietat
+            }
+
+            return jugadorActual;
+
+        } catch (Exception e) {
             e.printStackTrace();
             throw e;
         }
