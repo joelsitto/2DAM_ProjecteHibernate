@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * Controller REST per gestionar les peticions relacionades amb Jugadors
  */
@@ -40,14 +42,14 @@ public class JugadorController {
      *
      * @param idJugador ID del jugador (PathVariable)
      * @param idCarta ID de la carta a descartar (PathVariable)
-     * @return El jugador actualizado con su mano
+     * @return Map con el jugador actualizado y su mano
      */
     @DeleteMapping("/descartar/{idJugador}/{idCarta}")
     public ResponseEntity<?> descartarCarta(@PathVariable int idJugador, @PathVariable int idCarta) {
         try {
             // Delegar la lògica al service
-            Jugador jugadorActualizado = jugadorService.descartarCarta(idJugador, idCarta);
-            return ResponseEntity.ok(jugadorActualizado);
+            Map<String, Object> resultado = jugadorService.descartarCarta(idJugador, idCarta);
+            return ResponseEntity.ok(resultado);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

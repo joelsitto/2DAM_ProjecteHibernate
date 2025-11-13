@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
@@ -171,10 +173,10 @@ public class JugadorService {
      * Descarta una carta de la mà del jugador
      * @param idJugador ID del jugador
      * @param idCarta ID de la carta a descartar
-     * @return El jugador actualitzat amb la seva mà
+     * @return Map con la mano actualizada del jugador
      */
     @Transactional
-    public Jugador descartarCarta(int idJugador, int idCarta) {
+    public Map<String, Object> descartarCarta(int idJugador, int idCarta) {
         Optional<Jugador> jugadorOpt = jugadorRepository.findById(idJugador);
         if (jugadorOpt.isEmpty()) {
             throw new RuntimeException("Error: El jugador con ID " + idJugador + " no existe");
@@ -197,7 +199,12 @@ public class JugadorService {
         jugador.getMa().remove(carta);
 
         cartaRepository.save(carta);
-        return jugadorRepository.save(jugador);
+        jugadorRepository.save(jugador);
+
+        Map<String, Object> resultado = new HashMap<>();
+        resultado.put("mano", jugador.getMa());
+
+        return resultado;
     }
 }
 

@@ -19,17 +19,17 @@ public class PartidaController {
     // Endpoint per obtenir els jugadors d'una partida
     // URL: GET /partida/llistar/1
     @GetMapping("/llistar/{idPartida}")
-    public ResponseEntity<List<Jugador>> llistarJugadorsPartida(@PathVariable int idPartida) {
-        // Buscar els jugadors de la partida
-        List<Jugador> jugadors = partidaService.llistarJugadorsPartida(idPartida);
+    public ResponseEntity<?> llistarJugadorsPartida(@PathVariable int idPartida) {
+        try {
+            // Buscar els jugadors de la partida
+            List<Jugador> jugadors = partidaService.llistarJugadorsPartida(idPartida);
 
-        // Si no hi ha jugadors, retornar error 404
-        if (jugadors.isEmpty()) {
-            return ResponseEntity.notFound().build();
+            // Retornar els jugadors en format JSON
+            return ResponseEntity.ok(jugadors);
+        } catch (RuntimeException e) {
+            // Si hi ha error, retornar el missatge d'error
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-
-        // Retornar els jugadors en format JSON
-        return ResponseEntity.ok(jugadors);
     }
 
     // Endpoint per crear una partida nova
