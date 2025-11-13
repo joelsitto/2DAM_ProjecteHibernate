@@ -8,9 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-/**
- * Controller REST per gestionar les peticions relacionades amb Partides
- */
+// Controller per gestionar les partides
 @RestController
 @RequestMapping("/partida")
 public class PartidaController {
@@ -18,40 +16,30 @@ public class PartidaController {
     @Autowired
     private PartidaService partidaService;
 
-    /**
-     * Llista els jugadors d'una partida
-     * GET /partida/llistar/{idPartida}
-     * Retorna un JSON amb la llista de jugadors de la partida
-     *
-     * @param idPartida ID de la partida (PathVariable)
-     * @return ResponseEntity amb la llista de jugadors o 404 si no existeix
-     */
+    // Endpoint per obtenir els jugadors d'una partida
+    // URL: GET /partida/llistar/1
     @GetMapping("/llistar/{idPartida}")
     public ResponseEntity<List<Jugador>> llistarJugadorsPartida(@PathVariable int idPartida) {
-        // Obtenir els jugadors de la partida des del service
+        // Buscar els jugadors de la partida
         List<Jugador> jugadors = partidaService.llistarJugadorsPartida(idPartida);
 
-        // Si la llista està buida, retornar 404
+        // Si no hi ha jugadors, retornar error 404
         if (jugadors.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        // Retornar la llista de jugadors en format JSON
+        // Retornar els jugadors en format JSON
         return ResponseEntity.ok(jugadors);
     }
 
-    /**
-     * Inicia una nova partida
-     * POST /partida/iniciar
-     * Retorna un JSON amb la partida completa, incloent pila de cartes, jugadors i cartes en ma
-     *
-     * @return ResponseEntity amb la partida creada
-     */
+    // Endpoint per crear una partida nova
+    // URL: POST /partida/iniciar
     @PostMapping("/iniciar")
     public ResponseEntity<Partida> iniciarPartida() {
-        // Crear la nova partida utilitzant el service
+        // Crear la partida
         Partida partida = partidaService.iniciarPartida();
-        // Retornar la partida completa en format JSON
+
+        // Retornar la partida en format JSON
         return ResponseEntity.ok(partida);
     }
 }

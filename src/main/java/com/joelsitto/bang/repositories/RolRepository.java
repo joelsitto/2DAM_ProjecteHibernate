@@ -5,17 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
-/**
- * Repository per gestionar els Rols
- */
+// Repository per accedir als rols de la base de dades
 @Repository
 public interface RolRepository extends JpaRepository<Rol, Integer> {
 
-    /**
-     * Cerca un rol pel seu objectiu
-     * @param objectiu Descripció de l'objectiu del rol
-     * @return Optional amb el rol si existeix
-     */
+    // Buscar un rol pel seu objectiu (ex: "Sheriff")
     Optional<Rol> findByObjectiu(String objectiu);
 }
 
