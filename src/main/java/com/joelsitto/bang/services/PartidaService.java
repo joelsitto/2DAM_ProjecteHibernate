@@ -27,6 +27,7 @@ public class PartidaService {
     private DistanciesJugadorsRepository distanciesJugadorsRepository;
 
     // Mètode per obtenir els jugadors d'una partida
+    @Transactional(readOnly = true)
     public List<Jugador> llistarJugadorsPartida(int idPartida) {
         // Buscar la partida
         Optional<Partida> partidaOpt = partidaRepository.findById(idPartida);
@@ -36,8 +37,15 @@ public class PartidaService {
             return new ArrayList<>();
         }
 
+        // Obtenir la partida i forçar la càrrega dels jugadors
+        Partida partida = partidaOpt.get();
+        List<Jugador> jugadors = partida.getJugadors();
+
+        // Forçar la inicialització de les col·leccions lazy
+        jugadors.size(); // Això força Hibernate a carregar els jugadors
+
         // Retornar els jugadors
-        return partidaOpt.get().getJugadors();
+        return jugadors;
     }
 
     // Mètode per crear una partida nova amb tot el necessari
