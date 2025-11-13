@@ -1,4 +1,5 @@
 package com.joelsitto.bang.model;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 @Entity
@@ -11,10 +12,12 @@ public class DistanciesJugadors {
 
     @ManyToOne
     @JoinColumn(name = "id_jugador1", nullable = false)
+    @JsonManagedReference
     private Jugador jugador1;
 
     @ManyToOne
     @JoinColumn(name = "id_jugador2", nullable = false)
+    @JsonManagedReference
     private Jugador jugador2;
 
     @Column(name = "distancia", nullable = false)

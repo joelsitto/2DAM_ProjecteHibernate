@@ -1,5 +1,7 @@
 package com.joelsitto.bang.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.joelsitto.bang.model.enums.*;
 import jakarta.persistence.*;
 
@@ -26,13 +28,16 @@ public abstract class Carta {
     private TipusColl coll;
 
     @ManyToMany(mappedBy="pilaRobar")
+    @JsonBackReference
     private List<Partida> partidasPilaRobar = new ArrayList<>();
 
     @ManyToMany(mappedBy="pilaDescartades")
+    @JsonBackReference
     private List<Partida> partidasPilaDescartades = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name="id_jugador_ma")
+    @JsonManagedReference
     private Jugador jugadorMa;
 
     public Carta() {}

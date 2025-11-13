@@ -1,5 +1,6 @@
 package com.joelsitto.bang.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.joelsitto.bang.model.enums.TipusColl;
 import jakarta.persistence.*;
 
@@ -11,6 +12,7 @@ public class CartaArma extends Carta {
     private int distanciaArma;
 
     @OneToOne(mappedBy="armaEquipada")
+    @JsonBackReference
     private Jugador jugadorArma;
 
     public CartaArma() {}

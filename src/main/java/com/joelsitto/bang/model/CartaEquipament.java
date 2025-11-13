@@ -1,5 +1,7 @@
 package com.joelsitto.bang.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.joelsitto.bang.model.enums.TipusColl;
 import com.joelsitto.bang.model.enums.TipusEquipament;
 import jakarta.persistence.*;
@@ -17,6 +19,7 @@ public class CartaEquipament extends Carta {
 
     @ManyToOne
     @JoinColumn(name = "id_jugador_equipament")
+    @JsonManagedReference
     private Jugador jugadorEquipament;
 
     public CartaEquipament() {}

@@ -1,8 +1,10 @@
 package com.joelsitto.bang.repositories;
 
-import com.joelsitto.bang.model.Carta;
+import com.joelsitto.bang.model.DistanciesJugadors;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface CartaRepository extends JpaRepository<Carta, Integer> { }
+public interface DistanciesJugadorsRepository extends JpaRepository<DistanciesJugadors, Integer> {
+}
+

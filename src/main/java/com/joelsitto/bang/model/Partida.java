@@ -1,5 +1,6 @@
 package com.joelsitto.bang.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.util.*;
 
@@ -30,18 +31,21 @@ public class Partida {
     @JoinTable(name = "partida_jugadors",
             joinColumns = @JoinColumn(name = "id_partida"),
             inverseJoinColumns = @JoinColumn(name = "id_jugador"))
+    @JsonManagedReference
     private List<Jugador> jugadors = new ArrayList<>();
 
     @ManyToMany
     @JoinTable(name = "pila_robar",
             joinColumns = @JoinColumn(name = "id_partida"),
             inverseJoinColumns = @JoinColumn(name = "id_carta"))
+    @JsonManagedReference
     private List<Carta> pilaRobar = new ArrayList<>();
 
     @ManyToMany
     @JoinTable(name = "pila_descartades",
             joinColumns = @JoinColumn(name = "id_partida"),
             inverseJoinColumns = @JoinColumn(name = "id_carta"))
+    @JsonManagedReference
     private List<Carta> pilaDescartades = new ArrayList<>();
 
     public Partida() {}

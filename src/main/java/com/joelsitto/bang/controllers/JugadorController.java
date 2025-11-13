@@ -26,3 +26,4 @@ public class JugadorController {
         return null; // Aquí se actualizará la BD y se devolverá el jugador con su mano
     }
 }
+

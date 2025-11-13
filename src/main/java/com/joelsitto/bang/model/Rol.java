@@ -1,5 +1,6 @@
 package com.joelsitto.bang.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.util.*;
 
@@ -16,6 +17,7 @@ public class Rol {
     private String objectiu;
 
     @OneToMany(mappedBy = "rol")
+    @JsonBackReference
     private List<Jugador> jugadors = new ArrayList<>();
 
     public Rol() {}

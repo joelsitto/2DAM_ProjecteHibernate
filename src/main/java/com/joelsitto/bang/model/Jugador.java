@@ -1,5 +1,7 @@
 package com.joelsitto.bang.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.util.*;
 
@@ -29,25 +31,32 @@ public class Jugador {
 
     @ManyToOne
     @JoinColumn(name = "id_rol", nullable = false)
+    @JsonManagedReference
     private Rol rol;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "id_carta_arma")
+    @JsonManagedReference
     private CartaArma armaEquipada;
 
     @OneToMany(mappedBy = "jugadorEquipament", cascade = CascadeType.ALL)
+    @JsonBackReference
     private List<CartaEquipament> equipaments = new ArrayList<>();
 
     @OneToMany(mappedBy = "jugadorMa", cascade = CascadeType.ALL)
+    @JsonBackReference
     private List<Carta> ma = new ArrayList<>();
 
     @OneToMany(mappedBy = "jugador1", cascade = CascadeType.ALL)
+    @JsonBackReference
     private List<DistanciesJugadors> distanciesJugadors1 = new ArrayList<>();
 
     @OneToMany(mappedBy = "jugador2", cascade = CascadeType.ALL)
+    @JsonBackReference
     private List<DistanciesJugadors> distanciesJugadors2 = new ArrayList<>();
 
     @ManyToMany(mappedBy = "jugadors")
+    @JsonBackReference
     private List<Partida> partides = new ArrayList<>();
 
     public Jugador() {}
