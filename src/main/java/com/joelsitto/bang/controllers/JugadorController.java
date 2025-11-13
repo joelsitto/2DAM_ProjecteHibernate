@@ -8,9 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * Controller REST per gestionar les peticions relacionades amb Jugadors
- */
+// Controller para gestionar cosas de los jugadores
 @RestController
 @RequestMapping("/jugador")
 public class JugadorController {
@@ -18,39 +16,26 @@ public class JugadorController {
     @Autowired
     private JugadorService jugadorService;
 
-    /**
-     * UsarBANG - Ejecuta un ataque BANG! entre dos jugadores
-     * POST /jugador/usarBANG?idJugadorAtacant=1&idJugadorObjectiu=2
-     * Retorna un String amb el que passa (atac encertat, Fallaste, Barril, etc)
-     *
-     * @param idJugadorAtacant ID del jugador que ataca (RequestParam)
-     * @param idJugadorObjectiu ID del jugador objetivo (RequestParam)
-     * @return String describiendo el resultado del ataque
-     */
+    // Endpoint para usar BANG - un jugador ataca a otro
+    // POST /jugador/usarBANG?idJugadorAtacant=1&idJugadorObjectiu=2 per exemple
     @PostMapping("/usarBANG")
     public ResponseEntity<String> usarBANG(@RequestParam int idJugadorAtacant, @RequestParam int idJugadorObjectiu) {
-        // Delegar la lògica al service
+        // Llamar al service que hace la lógica del ataque
         String resultado = jugadorService.usarBANG(idJugadorAtacant, idJugadorObjectiu);
         return ResponseEntity.ok(resultado);
     }
 
 
-    /**
-     * DescartarCarta - Descarta una carta de la mano del jugador
-     * DELETE /jugador/descartar/{idJugador}/{idCarta}
-     * Retorna el jugador amb la seva mà actualitzada
-     *
-     * @param idJugador ID del jugador (PathVariable)
-     * @param idCarta ID de la carta a descartar (PathVariable)
-     * @return Map con el jugador actualizado y su mano
-     */
+    // Endpoint para descartar una carta de la mano del jugador
+    // DELETE /jugador/descartar/{idJugador}/{idCarta}
     @DeleteMapping("/descartar/{idJugador}/{idCarta}")
     public ResponseEntity<?> descartarCarta(@PathVariable int idJugador, @PathVariable int idCarta) {
         try {
-            // Delegar la lògica al service
+            // Llamar al service para descartar la carta
             Map<String, Object> resultado = jugadorService.descartarCarta(idJugador, idCarta);
             return ResponseEntity.ok(resultado);
         } catch (RuntimeException e) {
+            // Si hay error, devolver el mensaje de error
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

@@ -14,9 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
-/**
- * Service per gestionar la lògica de negoci dels Jugadors
- */
+// Service para la lógica de los jugadores
 @Service
 public class JugadorService {
 
@@ -28,15 +26,10 @@ public class JugadorService {
 
     private final Random random = new Random();
 
-    /**
-     * Executa un atac BANG! entre dos jugadors
-     * @param idJugadorAtacant ID del jugador que ataca
-     * @param idJugadorObjectiu ID del jugador objectiu
-     * @return String descrivint el resultat de l'atac
-     */
+    // Método para que un jugador ataque a otro con BANG
     @Transactional
     public String usarBANG(int idJugadorAtacant, int idJugadorObjectiu) {
-        // Validar que els jugadors existeixen
+        // Buscar los jugadores en la base de datos
         Optional<Jugador> atacantOpt = jugadorRepository.findById(idJugadorAtacant);
         Optional<Jugador> objectiuOpt = jugadorRepository.findById(idJugadorObjectiu);
 
@@ -144,12 +137,7 @@ public class JugadorService {
         return resultado;
     }
 
-    /**
-     * Calcula la distància entre dos jugadors
-     * @param atacant Jugador atacant
-     * @param objectiu Jugador objectiu
-     * @return Distància efectiva entre els jugadors
-     */
+    // Método para calcular la distancia entre dos jugadores
     private int calcularDistancia(Jugador atacant, Jugador objectiu) {
         int distanciaBase = atacant.getDistanciesJugadors1().stream()
                 .filter(d -> d.getJugador2().getId() == objectiu.getId())
@@ -169,12 +157,7 @@ public class JugadorService {
         return Math.max(1, distanciaBase + modificadorAtacant + modificadorObjectiu);
     }
 
-    /**
-     * Descarta una carta de la mà del jugador
-     * @param idJugador ID del jugador
-     * @param idCarta ID de la carta a descartar
-     * @return Map con la mano actualizada del jugador
-     */
+    // Método para descartar una carta de la mano del jugador
     @Transactional
     public Map<String, Object> descartarCarta(int idJugador, int idCarta) {
         Optional<Jugador> jugadorOpt = jugadorRepository.findById(idJugador);
@@ -194,7 +177,7 @@ public class JugadorService {
 
         Carta carta = cartaOpt.get();
 
-        // Descartar la carta (enviar-la al cementiri)
+        // Quitar la carta de la mano del jugador
         carta.setJugadorMa(null);
         jugador.getMa().remove(carta);
 

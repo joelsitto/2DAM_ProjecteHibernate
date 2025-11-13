@@ -17,7 +17,7 @@ public class PartidaController {
     private PartidaService partidaService;
 
     // Endpoint per obtenir els jugadors d'una partida
-    // URL: GET /partida/llistar/1
+    // URL: GET /partida/llistar/1 per exemple
     @GetMapping("/llistar/{idPartida}")
     public ResponseEntity<?> llistarJugadorsPartida(@PathVariable int idPartida) {
         try {
